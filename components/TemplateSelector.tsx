@@ -28,7 +28,7 @@ import { auth } from "../firebase";
 import { fetchTemplates, saveProjectToFirestore, seedTemplatesToCloud } from "../utils/templates";
 import saveAs from "file-saver";
 
-const BACKEND_URL = "https://backendservice-irri.onrender.com";
+const BACKEND_URL = "https://backendservice-cpyt.onrender.com";
 
 // Professional Field Configuration
 const fieldConfig: Record<string, { label: string; placeholder: string; type: 'text' | 'image' | 'date' | 'email' | 'currency' | 'number'; lettersOnly?: boolean; sample?: string }> = {
