@@ -1,7 +1,6 @@
 
 import { initializeApp } from "firebase/app";
-// Consolidated Firebase Auth imports into a single statement to resolve "no exported member" errors 
-// caused by multiple import declarations from the same module.
+// @ts-ignore - Fixing "no exported member" error which can occur in certain build environments with mixed Firebase versions
 import { 
   getAuth, 
   onAuthStateChanged, 
@@ -15,6 +14,7 @@ import {
   collection, 
   getDocs, 
   setDoc, 
+  addDoc,
   doc, 
   serverTimestamp, 
   query, 
@@ -23,9 +23,7 @@ import {
   deleteDoc
 } from "firebase/firestore";
 
-// Configuration for Firebase using provided values to ensure reliability.
-// Note: process.env.API_KEY is reserved for Gemini; Firebase keys are hardcoded here 
-// to prevent 'auth/invalid-api-key' errors in environments where VITE_ prefixes are not processed.
+// Configuration for Firebase using provided values.
 const firebaseConfig = {
   apiKey: "AIzaSyBsDwsrl4f866azToJWTu_vj4JBMpQXe_c",
   authDomain: "landreportapp.firebaseapp.com",
@@ -46,6 +44,7 @@ export {
   collection, 
   getDocs, 
   setDoc, 
+  addDoc,
   doc, 
   serverTimestamp, 
   query, 

@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { Template } from "../types";
 
@@ -291,6 +291,18 @@ export const defaultTemplates: Template[] = [
   }
 ];
 
+export const fetchTemplates = async (): Promise<Template[]> => {
+  try {
+    const templatesRef = collection(db, "templates");
+    const snapshot = await getDocs(templatesRef);
+    if (snapshot.empty) return defaultTemplates;
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Template));
+  } catch (error) {
+    console.warn("Firestore Error. Falling back to local store.", error);
+    return defaultTemplates;
+  }
+};
+
 export const initializeTemplates = async () => {
   try {
     const templatesRef = collection(db, "templates");
@@ -310,24 +322,33 @@ export const initializeTemplates = async () => {
   }
 };
 
-export const fetchTemplates = async (): Promise<Template[]> => {
+export const seedTemplatesToCloud = async () => {
   try {
-    const snapshot = await getDocs(collection(db, "templates"));
-    if (snapshot.empty) return defaultTemplates;
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Template));
-  } catch (error) {
-    console.error("Error fetching templates:", error);
-    return defaultTemplates;
+    const templatesRef = collection(db, "templates");
+    for (const t of defaultTemplates) {
+      await setDoc(doc(templatesRef, t.id), { 
+        ...t, 
+        updatedAt: serverTimestamp() 
+      }, { merge: true });
+    }
+    return true;
+  } catch (err) {
+    console.error("Seed failed:", err);
+    return false;
   }
 };
 
 export const saveProjectToFirestore = async (userId: string, data: any) => {
   try {
-    const projectRef = doc(collection(db, "users", userId, "projects"));
-    await setDoc(projectRef, { ...data, userId, createdAt: serverTimestamp() });
+    // Standardizing to 'reports' collection as per ProjectPage.tsx
+    await addDoc(collection(db, "reports"), { 
+      ...data, 
+      userId, 
+      createdAt: serverTimestamp() 
+    });
     return true;
   } catch (error) {
-    console.error("Error saving project:", error);
+    console.error("Save failed:", error);
     return false;
   }
 };

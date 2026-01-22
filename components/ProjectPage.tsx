@@ -1,10 +1,11 @@
-
 import React, { useState } from "react";
 import { FirebaseUser } from "../types";
 import { auth, db, doc, setDoc, serverTimestamp, signOut } from "../firebase";
 import { LogOut, Save, FileText, Download, LayoutDashboard, Sprout, ArrowLeft, CheckCircle, RefreshCw } from "lucide-react";
 import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from "docx";
 import saveAs from "file-saver";
+
+const BACKEND_URL = "https://backendservice-u74n.onrender.com";
 
 interface ProjectPageProps {
   user: FirebaseUser;
@@ -20,6 +21,7 @@ export default function ProjectPage({ user, onLogout, onBack }: ProjectPageProps
   });
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -52,18 +54,57 @@ export default function ProjectPage({ user, onLogout, onBack }: ProjectPageProps
     }
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     const element = document.getElementById("preview-content");
     if (!element) return;
-    const html2pdf = (window as any).html2pdf;
-    if (html2pdf) {
-      html2pdf().set({
-        margin: 0,
-        filename: "LandScale_Report.pdf",
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: { scale: 3, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-      }).from(element).save();
+    
+    setDownloading(true);
+    try {
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+              body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: white; }
+              @page { size: A4; margin: 0; }
+              #preview-content { width: 794px; min-height: 1122px; margin: 0 auto; box-sizing: border-box; }
+            </style>
+          </head>
+          <body>
+            <div id="preview-content">
+              ${element.innerHTML}
+            </div>
+          </body>
+        </html>
+      `;
+
+      const response = await fetch(`${BACKEND_URL}/api/generate-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          html: htmlContent,
+          filename: `LandScale_Manual_${new Date().toISOString().split('T')[0]}`
+        })
+      });
+
+      if (!response.ok) throw new Error("Backend rendering failed");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `LandScale_Manual_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Backend PDF Error:", err);
+      alert("High-Def rendering failed. Check connection to Puppeteer backend.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -85,7 +126,24 @@ export default function ProjectPage({ user, onLogout, onBack }: ProjectPageProps
   };
 
   return (
-    <div className="h-screen flex flex-col bg-slate-100 overflow-hidden">
+    <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left">
+      {downloading && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-xl flex flex-col items-center justify-center p-12 animate-fade-in text-center">
+          <div className="w-full max-w-md space-y-8">
+            <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+              <RefreshCw className="text-emerald-400 animate-spin" size={48} />
+            </div>
+            <div>
+              <h3 className="text-white text-3xl font-black tracking-tighter mb-2">Secure Render Node</h3>
+              <p className="text-white/40 text-xs font-bold uppercase tracking-[0.2em]">High-Definition Puppeteer Pipeline Active</p>
+            </div>
+            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
+              <div className="h-full bg-emerald-500 w-full origin-left animate-[progress-indefinite_2s_infinite_ease-in-out]"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white border-b px-6 py-4 flex justify-between items-center z-30 shadow-sm shrink-0">
         <div className="flex items-center gap-6">
           <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
@@ -173,7 +231,7 @@ export default function ProjectPage({ user, onLogout, onBack }: ProjectPageProps
           </div>
         </aside>
 
-        <main className="flex-1 bg-slate-200 overflow-y-auto p-12 flex justify-center no-scrollbar relative">
+        <main className="flex-1 bg-slate-200 overflow-y-auto p-12 flex justify-center no-scrollbar relative text-left">
           <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] opacity-40">Document Workspace</div>
           
           <div 
@@ -191,7 +249,7 @@ export default function ProjectPage({ user, onLogout, onBack }: ProjectPageProps
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-16 mb-20">
+            <div className="grid grid-cols-2 gap-16 mb-20 text-left">
               <div className="text-left">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Certified Surveyor</h4>
                 <p className="text-lg font-black text-slate-900 leading-none">{user.displayName || "N/A"}</p>
@@ -239,6 +297,14 @@ export default function ProjectPage({ user, onLogout, onBack }: ProjectPageProps
           </div>
         </main>
       </div>
+      <style>{`
+        @keyframes progress-indefinite {
+          0% { transform: scaleX(0); transform-origin: left; }
+          45% { transform: scaleX(1); transform-origin: left; }
+          50% { transform: scaleX(1); transform-origin: right; }
+          100% { transform: scaleX(0); transform-origin: right; }
+        }
+      `}</style>
     </div>
   );
 }
