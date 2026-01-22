@@ -5,7 +5,7 @@ import { LogOut, Save, FileText, Download, LayoutDashboard, Sprout, ArrowLeft, C
 import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from "docx";
 import saveAs from "file-saver";
 
-const BACKEND_URL = "https://backendservice-u74n.onrender.com";
+const BACKEND_URL = "https://backendservice-cpyt.onrender.com";
 
 interface ProjectPageProps {
   user: FirebaseUser;
