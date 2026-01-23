@@ -1,27 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { FirebaseUser, Project } from "./types";
+import { FirebaseUser, Project, Template } from "./types";
 import { auth, onAuthStateChanged } from "./firebase";
 import Landing from "./components/Landing";
 import FirebaseLoginUI from "./components/FirebaseLoginUI";
 import ProjectTabs from "./components/ProjectTabs";
-// import ProjectPage from "./components/ProjectPage";
 import TemplateSelector from "./components/TemplateSelector";
 import PreviousWorks from "./components/PreviousWorks";
 import { initializeTemplates } from "./utils/templates";
+import { Loader2 } from "lucide-react";
 
-type AppState = "landing" | "auth" | "dashboard"  | "template-selector" | "previous-works";
+type AppState = "landing" | "auth" | "dashboard" | "template-selector" | "previous-works";
 
 export default function App() {
+  const [state, setState] = useState<AppState>("landing");
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<AppState>("landing");
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    // Non-blocking initialization
-    initializeTemplates();
-
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
@@ -29,59 +26,80 @@ export default function App() {
           email: firebaseUser.email,
           photoURL: firebaseUser.photoURL,
         });
-        if (view === "landing" || view === "auth") setView("dashboard");
+        setState("dashboard");
       } else {
         setUser(null);
-        if (view !== "landing") setView("auth");
+        if (state !== "auth") setState("landing");
       }
       setLoading(false);
     });
-    
-    return () => unsubscribe();
-  }, [view]);
 
-  const handleOpenProject = (project: Project) => {
-    setSelectedProject(project);
-    setView("template-selector");
+    initializeTemplates();
+    return () => unsub();
+  }, []);
+
+  const handleStartNewProject = (projectName: string, template: Template) => {
+    const newProject: Project = {
+      projectName,
+      templateId: template.id,
+      templateName: template.name,
+      formData: {},
+      createdAt: null, // Will be set by Firestore
+    };
+    setActiveProject(newProject);
+    setState("template-selector");
+  };
+
+  const handleSelectProject = (project: Project) => {
+    setActiveProject(project);
+    setState("template-selector");
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Initialising LandScale Node...</p>
-        </div>
+        <Loader2 className="animate-spin text-emerald-600" size={32} />
       </div>
     );
   }
 
-  // Auth Guard
-  if (!user && (view !== "landing" && view !== "auth")) {
-    return <FirebaseLoginUI onAuthSuccess={(u) => { setUser(u); setView("dashboard"); }} onBack={() => setView("landing")} />;
-  }
-
-  switch (view) {
-    case "landing":
-      return <Landing onGetStarted={() => setView("auth")} />;
-    case "auth":
-      return <FirebaseLoginUI onAuthSuccess={(u) => { setUser(u); setView("dashboard"); }} onBack={() => setView("landing")} />;
-    case "dashboard":
-      return (
-        <ProjectTabs 
-          user={user!} 
-          onLogout={() => auth.signOut()} 
-          onStartManual={() => { setSelectedProject(null); setView("manual"); }} 
-          onStartTemplate={() => { setSelectedProject(null); setView("template-selector"); }} 
-          onViewPrevious={() => setView("previous-works")}
+  return (
+    <div className="min-h-screen">
+      {state === "landing" && (
+        <Landing onGetStarted={() => setState("auth")} />
+      )}
+      
+      {state === "auth" && (
+        <FirebaseLoginUI 
+          onAuthSuccess={(u) => { setUser(u); setState("dashboard"); }} 
+          onBack={() => setState("landing")} 
         />
-      );
-    
-    case "template-selector":
-      return <TemplateSelector initialProject={selectedProject} onBack={() => setView("dashboard")} />;
-    case "previous-works":
-      return <PreviousWorks user={user!} onBack={() => setView("dashboard")} onSelectProject={handleOpenProject} />;
-    default:
-      return <Landing onGetStarted={() => setView("auth")} />;
-  }
+      )}
+
+      {state === "dashboard" && user && (
+        <ProjectTabs 
+          user={user} 
+          onLogout={async () => { await auth.signOut(); setState("landing"); }}
+          onStartTemplate={() => { setActiveProject(null); setState("template-selector"); }}
+          onViewPrevious={() => setState("previous-works")}
+          onStartNewProject={handleStartNewProject}
+        />
+      )}
+
+      {state === "template-selector" && (
+        <TemplateSelector 
+          initialProject={activeProject}
+          onBack={() => { setActiveProject(null); setState("dashboard"); }} 
+        />
+      )}
+
+      {state === "previous-works" && user && (
+        <PreviousWorks 
+          user={user} 
+          onBack={() => setState("dashboard")} 
+          onSelectProject={handleSelectProject}
+        />
+      )}
+    </div>
+  );
 }

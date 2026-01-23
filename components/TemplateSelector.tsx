@@ -24,7 +24,8 @@ import {
   Hash,
   CloudLightning,
   PenLine,
-  Check
+  Check,
+  AlertTriangle
 } from "lucide-react";
 import { auth } from "../firebase";
 import { fetchTemplates, saveProjectToFirestore, seedTemplatesToCloud, checkProjectNameExists } from "../utils/templates";
@@ -159,8 +160,6 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [projectName, setProjectName] = useState("Untitled Project");
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [isNameUnique, setIsNameUnique] = useState<boolean | null>(null);
-  const [checkingName, setCheckingName] = useState(false);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -170,8 +169,12 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [showImageNotice, setShowImageNotice] = useState(false);
+  const [noticeCount, setNoticeCount] = useState(() => {
+    return parseInt(localStorage.getItem("imageNoticeCount") || "0");
+  });
 
-  const isNameValid = projectName.trim() !== "" && projectName !== "Untitled Project" && isNameUnique === true;
+  const isNameValid = projectName.trim() !== "";
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -186,10 +189,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
           setSelectedTemplate(found);
           setProjectName(initialProject.projectName);
           setProjectId(initialProject.id || null);
-          setIsNameUnique(true); 
           
-          // CRITICAL: Merge saved data with template placeholders.
-          // This ensures images (which are NOT in initialProject.formData) show up as upload fields.
           const allFields = extractFieldNamesFromTemplate(found.html);
           const mergedData: Record<string, string> = {};
           allFields.forEach(f => {
@@ -231,24 +231,6 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
       setFormData(initialData);
     }
   }, [selectedTemplate]);
-
-  useEffect(() => {
-    if (!projectName.trim() || !auth.currentUser) return;
-    
-    if (initialProject && projectName === initialProject.projectName) {
-      setIsNameUnique(true);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setCheckingName(true);
-      const exists = await checkProjectNameExists(auth.currentUser!.uid, projectName);
-      setIsNameUnique(!exists);
-      setCheckingName(false);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [projectName, initialProject]);
 
   const handleSelectTemplate = (template: Template) => {
     setSelectedTemplate(template);
@@ -305,22 +287,28 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
     return html;
   };
 
+  const dismissNotice = () => {
+    const newCount = noticeCount + 1;
+    setNoticeCount(newCount);
+    localStorage.setItem("imageNoticeCount", newCount.toString());
+    setShowImageNotice(false);
+  };
+
   const handleSave = async () => {
-    if (projectName === "Untitled Project") {
-      alert("Please provide a unique name for your project before saving.");
+    if (!isNameValid) {
+      alert("Please provide a name for your project before saving.");
       return;
     }
 
-    if (isNameUnique === false) {
-      setErrorMessage("Project name is already taken. Please choose a unique name.");
-      return;
+    const hasImages = Object.keys(formData).some(key => fieldConfig[key]?.type === 'image' && formData[key] !== "");
+    if (hasImages && noticeCount < 2) {
+      setShowImageNotice(true);
     }
 
     const user = auth.currentUser || { uid: "test-user-id-12345", displayName: "Test Surveyor" };
     setSaving(true);
     setErrorMessage(null);
 
-    // Filtering out images to save DB storage
     const filteredFormData = { ...formData };
     Object.keys(filteredFormData).forEach(key => {
       if (fieldConfig[key]?.type === 'image') {
@@ -349,7 +337,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
 
   const handleDownloadPDF = async () => {
     if (!isNameValid) {
-      alert("Please name the project uniquely before exporting.");
+      alert("Please name the project before exporting.");
       return;
     }
     if (!selectedTemplate) return;
@@ -381,7 +369,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
 
   const handleDownloadWord = async () => {
     if (!isNameValid) {
-      alert("Please name the project uniquely before exporting.");
+      alert("Please name the project before exporting.");
       return;
     }
     if (!selectedTemplate) return;
@@ -479,8 +467,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
                 <BookOpen size={24} />
               </div>
               <div className="text-left">
-                <h1 className="text-xl font-black text-slate-900 leading-none">Protocol Library</h1>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Global Template Store</p>
+                <h1 className="text-xl font-black text-slate-900 leading-none">Templates Library</h1>
               </div>
             </div>
           </div>
@@ -489,7 +476,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input 
                 type="text" 
-                placeholder="Search protocols..." 
+                placeholder="Search templates..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-slate-50 border-2 border-slate-100 rounded-xl pl-12 pr-6 py-2.5 text-xs font-bold outline-none focus:border-blue-500 transition-all w-64"
@@ -531,7 +518,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
                   </div>
                   <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">{t.name}</h3>
                   <div className="flex items-center justify-between mt-8">
-                    <span className="text-blue-600 font-black text-[10px] uppercase tracking-widest">Deploy Protocol</span>
+                    <span className="text-blue-600 font-black text-[10px] uppercase tracking-widest">Create Project</span>
                     <ChevronRight className="text-blue-600 group-hover:translate-x-1 transition-transform" size={20} />
                   </div>
                 </div>
@@ -545,6 +532,30 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
 
   return (
     <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left text-slate-900">
+      {/* Awareness Warning Card */}
+      {showImageNotice && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-amber-50 border-2 border-amber-200 rounded-[2rem] shadow-2xl p-6 z-[100] animate-fade-in flex flex-col gap-4">
+          <div className="flex items-start gap-4 text-amber-800">
+            <div className="bg-amber-100 p-3 rounded-2xl shrink-0">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <h4 className="text-sm font-black uppercase tracking-widest mb-1">Storage Awareness</h4>
+              <p className="text-xs font-medium leading-relaxed opacity-90">
+                Uploaded images are <span className="font-bold underline">not stored in the cloud</span> database. 
+                They will be cleared when you refresh the page. Please use PDF or Word export to save your report with photos permanently.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={dismissNotice}
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+          >
+            I Understand
+          </button>
+        </div>
+      )}
+
       {(downloading || downloadingWord) && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center p-12 transition-all text-center">
           <div className="w-full max-w-md space-y-6">
@@ -580,18 +591,12 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
                   type="text" 
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  className={`bg-transparent text-lg font-black tracking-tight outline-none border-b-2 transition-all ${
-                    isNameUnique === false || projectName === "Untitled Project" ? 'border-red-500 text-red-600' : isNameUnique === true ? 'border-emerald-500 text-slate-900' : 'border-slate-200 text-slate-900'
-                  } focus:border-blue-600 min-w-[200px]`}
+                  className="bg-transparent text-lg font-black tracking-tight outline-none border-b-2 border-slate-200 focus:border-blue-600 transition-all min-w-[200px] text-slate-900"
+                  placeholder="Enter project name..."
                 />
-                <div className="w-6 flex items-center justify-center">
-                  {checkingName ? <Loader2 size={16} className="animate-spin text-slate-400" /> : 
-                   (isNameUnique === true && projectName !== "Untitled Project") ? <Check size={16} className="text-emerald-500" /> : 
-                   (isNameUnique === false || projectName === "Untitled Project") ? <X size={16} className="text-red-500" /> : null}
-                </div>
               </div>
               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                {projectName === "Untitled Project" ? 'Name Required' : isNameUnique === false ? 'Name Taken' : isNameUnique === true ? 'Name Available' : 'Naming Project...'}
+                Name Project
               </p>
             </div>
           </div>
@@ -608,7 +613,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
           
           <button 
             onClick={handleSave} 
-            disabled={saving || isNameUnique === false || projectName === "Untitled Project"}
+            disabled={saving || !isNameValid}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md ${
               showSuccess ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
             }`}
@@ -632,17 +637,14 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
               </div>
             )}
 
-            {projectName === "Untitled Project" && (
+            {!isNameValid && (
               <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-center text-left">
                 <AlertCircle size={20} className="text-blue-500 shrink-0" />
-                <p className="text-xs font-bold text-blue-700">Please provide a unique project name to enable exports.</p>
+                <p className="text-xs font-bold text-blue-700">Please provide a project name to enable exports.</p>
               </div>
             )}
 
-            <div className="flex items-center gap-3 text-blue-600">
-              <div className="p-2 bg-blue-50 rounded-lg"><Eye size={20} /></div>
-              <span className="text-xs font-black uppercase tracking-[0.2em]">Data Injection</span>
-            </div>
+       
             
             <div className="space-y-8 text-left text-slate-900">
               {Object.keys(formData).map(key => {
