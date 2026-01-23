@@ -37,19 +37,12 @@ export default function Landing({ onGetStarted }: Props) {
       <main className="max-w-7xl mx-auto px-6 pt-20 pb-32 text-center relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-emerald-100/30 blur-[120px] rounded-full -z-10 animate-pulse"></div>
         
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest mb-10 shadow-sm">
-          Next Generation Land Management
-        </div>
+     
         
         <h1 className="text-7xl md:text-9xl font-black text-slate-900 mb-10 tracking-tighter leading-[0.9]">
-          Measure, monitor, <br />
-          <span className="text-emerald-600">improve land.</span>
+          Generate <br /> PDF and DOC <br />
         </h1>
         
-        <p className="text-2xl text-slate-600 max-w-3xl mx-auto mb-16 leading-relaxed font-medium">
-          The ultimate platform for ecological surveyors to track site indicators, 
-          collect field data, and generate professional document reports instantly.
-        </p>
 
         <div className="flex justify-center mb-32">
           <button 
@@ -61,23 +54,7 @@ export default function Landing({ onGetStarted }: Props) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          <FeatureCard 
-            icon={ClipboardCheck} 
-            title="Field Surveys" 
-            description="Robust data collection tools designed for harsh field environments. Instant validation and sync." 
-          />
-          <FeatureCard 
-            icon={Map} 
-            title="Site Indicators" 
-            description="Visualize complex datasets on intuitive dashboards. Track environmental changes with 100% precision." 
-          />
-          <FeatureCard 
-            icon={BarChart3} 
-            title="Instant Reports" 
-            description="Export professional PDF and Word documents with one click. Ready for government and compliance filings." 
-          />
-        </div>
+   
       </main>
     </div>
   );

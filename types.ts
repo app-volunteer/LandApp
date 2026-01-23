@@ -1,4 +1,3 @@
-
 export interface FirebaseUser {
   uid: string;
   displayName: string | null;
@@ -15,10 +14,11 @@ export interface Template {
 export interface Project {
   id?: string;
   userId?: string;
+  projectName: string;
   templateId: string;
   templateName: string;
   formData: Record<string, string>;
-  filledHtml: string;
   createdAt: any;
+  updatedAt?: any;
   userName?: string | null;
 }

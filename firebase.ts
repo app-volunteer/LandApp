@@ -1,13 +1,7 @@
-
+// @ts-ignore
 import { initializeApp } from "firebase/app";
-// @ts-ignore - Fixing "no exported member" error which can occur in certain build environments with mixed Firebase versions
-import { 
-  getAuth, 
-  onAuthStateChanged, 
-  signOut, 
-  signInWithPopup, 
-  GoogleAuthProvider 
-} from "firebase/auth";
+// @ts-ignore
+import { getAuth, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 import { 
   getFirestore, 
@@ -20,10 +14,10 @@ import {
   query, 
   where, 
   orderBy,
-  deleteDoc
+  deleteDoc,
+  updateDoc
 } from "firebase/firestore";
 
-// Configuration for Firebase using provided values.
 const firebaseConfig = {
   apiKey: "AIzaSyBsDwsrl4f866azToJWTu_vj4JBMpQXe_c",
   authDomain: "landreportapp.firebaseapp.com",
@@ -33,7 +27,6 @@ const firebaseConfig = {
   appId: "1:743751569926:web:a9d6d39872a6c20599e987",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -51,6 +44,7 @@ export {
   where, 
   orderBy,
   deleteDoc,
+  updateDoc,
   onAuthStateChanged,
   signOut,
   signInWithPopup,

@@ -1,97 +1,87 @@
-
 import React, { useState, useEffect } from "react";
-import { FirebaseUser } from "./types";
+import { FirebaseUser, Project } from "./types";
+import { auth, onAuthStateChanged } from "./firebase";
 import Landing from "./components/Landing";
 import FirebaseLoginUI from "./components/FirebaseLoginUI";
 import ProjectTabs from "./components/ProjectTabs";
-import ProjectPage from "./components/ProjectPage";
+// import ProjectPage from "./components/ProjectPage";
 import TemplateSelector from "./components/TemplateSelector";
-import { auth, onAuthStateChanged, signOut } from "./firebase";
+import PreviousWorks from "./components/PreviousWorks";
 import { initializeTemplates } from "./utils/templates";
 
-type View = "landing" | "auth" | "dashboard" | "manual-project" | "template-selector";
+type AppState = "landing" | "auth" | "dashboard"  | "template-selector" | "previous-works";
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [currentView, setCurrentView] = useState<View>("landing");
-  const [initializing, setInitializing] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<AppState>("landing");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    // Listen for auth state changes only once on mount
+    // Non-blocking initialization
+    initializeTemplates();
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
-          email: firebaseUser.email,
           displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL
+          email: firebaseUser.email,
+          photoURL: firebaseUser.photoURL,
         });
-        initializeTemplates();
-        
-        // Use functional update to avoid stale closure of currentView
-        setCurrentView((prev) => {
-          if (prev === "landing" || prev === "auth") {
-            return "dashboard";
-          }
-          return prev;
-        });
+        if (view === "landing" || view === "auth") setView("dashboard");
       } else {
         setUser(null);
-        setCurrentView((prev) => {
-          // Only redirect to landing if the user was in a protected view
-          const protectedViews: View[] = ["dashboard", "manual-project", "template-selector"];
-          if (protectedViews.includes(prev)) {
-            return "landing";
-          }
-          return prev;
-        });
+        if (view !== "landing") setView("auth");
       }
-      setInitializing(false);
+      setLoading(false);
     });
-
+    
     return () => unsubscribe();
-  }, []);
+  }, [view]);
 
-  const handleAuthSuccess = (u: FirebaseUser) => {
-    setUser(u);
-    setCurrentView("dashboard");
+  const handleOpenProject = (project: Project) => {
+    setSelectedProject(project);
+    setView("template-selector");
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    // onAuthStateChanged will handle the state/view reset
-  };
-
-  if (initializing) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Initializing LandScale...</p>
+          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Initialising LandScale Node...</p>
         </div>
       </div>
     );
   }
 
-  switch (currentView) {
+  // Auth Guard
+  if (!user && (view !== "landing" && view !== "auth")) {
+    return <FirebaseLoginUI onAuthSuccess={(u) => { setUser(u); setView("dashboard"); }} onBack={() => setView("landing")} />;
+  }
+
+  switch (view) {
     case "landing":
-      return <Landing onGetStarted={() => setCurrentView("auth")} />;
+      return <Landing onGetStarted={() => setView("auth")} />;
     case "auth":
-      return <FirebaseLoginUI onAuthSuccess={handleAuthSuccess} onBack={() => setCurrentView("landing")} />;
+      return <FirebaseLoginUI onAuthSuccess={(u) => { setUser(u); setView("dashboard"); }} onBack={() => setView("landing")} />;
     case "dashboard":
-      return user ? (
+      return (
         <ProjectTabs 
-          user={user} 
-          onLogout={handleLogout} 
-          onStartManual={() => setCurrentView("manual-project")}
-          onStartTemplate={() => setCurrentView("template-selector")}
+          user={user!} 
+          onLogout={() => auth.signOut()} 
+          onStartManual={() => { setSelectedProject(null); setView("manual"); }} 
+          onStartTemplate={() => { setSelectedProject(null); setView("template-selector"); }} 
+          onViewPrevious={() => setView("previous-works")}
         />
-      ) : null;
-    case "manual-project":
-      return user ? <ProjectPage user={user} onLogout={handleLogout} onBack={() => setCurrentView("dashboard")} /> : null;
+      );
+    
     case "template-selector":
-      return user ? <TemplateSelector onBack={() => setCurrentView("dashboard")} /> : null;
+      return <TemplateSelector initialProject={selectedProject} onBack={() => setView("dashboard")} />;
+    case "previous-works":
+      return <PreviousWorks user={user!} onBack={() => setView("dashboard")} onSelectProject={handleOpenProject} />;
     default:
-      return <Landing onGetStarted={() => setCurrentView("auth")} />;
+      return <Landing onGetStarted={() => setView("auth")} />;
   }
 }

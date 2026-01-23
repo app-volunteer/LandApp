@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Template } from "../types";
+import { Template, Project } from "../types";
 import { 
   BookOpen, 
   ArrowLeft, 
@@ -22,10 +22,12 @@ import {
   Mail,
   Wand2,
   Hash,
-  CloudLightning
+  CloudLightning,
+  PenLine,
+  Check
 } from "lucide-react";
 import { auth } from "../firebase";
-import { fetchTemplates, saveProjectToFirestore, seedTemplatesToCloud } from "../utils/templates";
+import { fetchTemplates, saveProjectToFirestore, seedTemplatesToCloud, checkProjectNameExists } from "../utils/templates";
 import saveAs from "file-saver";
 
 const BACKEND_URL = "https://backendservice-9ss2.onrender.com";
@@ -119,7 +121,6 @@ const compressImage = (file: File): Promise<string> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        // Conservative width (800px) ensures base64 strings stay within safe limits for PDF engines
         const MAX_WIDTH = 800; 
         let width = img.width;
         let height = img.height;
@@ -135,7 +136,6 @@ const compressImage = (file: File): Promise<string> => {
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, width, height);
         }
-        // Slightly lower quality (0.7) for maximum reliability in headless rendering
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
         resolve(`<img src="${dataUrl}" border="0" style="display: block; margin: 0 auto; max-width: 100%; height: auto; object-fit: contain;" />`);
       };
@@ -147,15 +147,20 @@ const compressImage = (file: File): Promise<string> => {
 
 interface TemplateSelectorProps {
   onBack: () => void;
+  initialProject?: Project | null;
 }
 
 type ViewMode = 'library' | 'editor';
 
-export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('library');
+export default function TemplateSelector({ onBack, initialProject }: TemplateSelectorProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>(initialProject ? 'editor' : 'library');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [projectName, setProjectName] = useState("Untitled Project");
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [isNameUnique, setIsNameUnique] = useState<boolean | null>(null);
+  const [checkingName, setCheckingName] = useState(false);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -166,12 +171,33 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
 
+  const isNameValid = projectName.trim() !== "" && projectName !== "Untitled Project" && isNameUnique === true;
+
   const loadTemplates = async () => {
     setLoading(true);
     setErrorMessage(null);
     try {
       const data = await fetchTemplates();
       setTemplates(data);
+      
+      if (initialProject) {
+        const found = data.find(t => t.id === initialProject.templateId);
+        if (found) {
+          setSelectedTemplate(found);
+          setProjectName(initialProject.projectName);
+          setProjectId(initialProject.id || null);
+          setIsNameUnique(true); 
+          
+          // CRITICAL: Merge saved data with template placeholders.
+          // This ensures images (which are NOT in initialProject.formData) show up as upload fields.
+          const allFields = extractFieldNamesFromTemplate(found.html);
+          const mergedData: Record<string, string> = {};
+          allFields.forEach(f => {
+            mergedData[f] = initialProject.formData[f] || "";
+          });
+          setFormData(mergedData);
+        }
+      }
     } catch (err) {
       setErrorMessage("Cloud connection timed out. Using local protocols.");
     } finally {
@@ -181,7 +207,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
 
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [initialProject]);
 
   const handleCloudSeed = async () => {
     setSeeding(true);
@@ -196,7 +222,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
   };
 
   useEffect(() => {
-    if (selectedTemplate) {
+    if (selectedTemplate && !initialProject) {
       const fields = extractFieldNamesFromTemplate(selectedTemplate.html);
       const initialData: Record<string, string> = {};
       fields.forEach(f => {
@@ -205,6 +231,24 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
       setFormData(initialData);
     }
   }, [selectedTemplate]);
+
+  useEffect(() => {
+    if (!projectName.trim() || !auth.currentUser) return;
+    
+    if (initialProject && projectName === initialProject.projectName) {
+      setIsNameUnique(true);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCheckingName(true);
+      const exists = await checkProjectNameExists(auth.currentUser!.uid, projectName);
+      setIsNameUnique(!exists);
+      setCheckingName(false);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [projectName, initialProject]);
 
   const handleSelectTemplate = (template: Template) => {
     setSelectedTemplate(template);
@@ -262,24 +306,52 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
   };
 
   const handleSave = async () => {
+    if (projectName === "Untitled Project") {
+      alert("Please provide a unique name for your project before saving.");
+      return;
+    }
+
+    if (isNameUnique === false) {
+      setErrorMessage("Project name is already taken. Please choose a unique name.");
+      return;
+    }
+
     const user = auth.currentUser || { uid: "test-user-id-12345", displayName: "Test Surveyor" };
     setSaving(true);
     setErrorMessage(null);
-    const success = await saveProjectToFirestore(user.uid, {
+
+    // Filtering out images to save DB storage
+    const filteredFormData = { ...formData };
+    Object.keys(filteredFormData).forEach(key => {
+      if (fieldConfig[key]?.type === 'image') {
+        delete filteredFormData[key];
+      }
+    });
+
+    const result = await saveProjectToFirestore(user.uid, {
+      id: projectId,
+      projectName,
       templateId: selectedTemplate?.id,
       templateName: selectedTemplate?.name,
-      formData,
-      filledHtml: getFilledHtml(),
+      formData: filteredFormData,
       userName: user.displayName,
     });
+
     setSaving(false);
-    if (success) {
+    if (result.success) {
+      setProjectId(result.id!);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
+    } else {
+      setErrorMessage("Cloud synchronization failure.");
     }
   };
 
   const handleDownloadPDF = async () => {
+    if (!isNameValid) {
+      alert("Please name the project uniquely before exporting.");
+      return;
+    }
     if (!selectedTemplate) return;
     setDownloading(true);
     setErrorMessage(null);
@@ -289,7 +361,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           html: getFilledHtml(),
-          filename: `LandScale_Report_${formData.lotNo || "Document"}`
+          filename: `${projectName || "LandScale_Report"}`
         }),
       });
 
@@ -299,7 +371,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
       }
 
       const blob = (await response.blob()) as Blob;
-      saveAs(blob, `LandScale_Report_${formData.lotNo || "Document"}.pdf`);
+      saveAs(blob, `${projectName || "LandScale_Report"}.pdf`);
     } catch (error: any) {
       setErrorMessage(error.message || "PDF generation failed.");
     } finally {
@@ -308,30 +380,74 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
   };
 
   const handleDownloadWord = async () => {
+    if (!isNameValid) {
+      alert("Please name the project uniquely before exporting.");
+      return;
+    }
     if (!selectedTemplate) return;
-    setDownloadingWord(true);
-    setErrorMessage(null);
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/generate-docx`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          html: getFilledHtml(),
-          filename: `LandScale_Report_${formData.lotNo || "Document"}`
-        }),
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Render node failed." }));
-        throw new Error(errorData.error || "Word generation service failure.");
+    setDownloading(true);
+    setErrorMessage(null);
+
+    const popup = window.open(
+      "about:blank",
+      "_blank",
+      "width=900,height=600,resizable=yes,scrollbars=yes"
+    );
+
+    if (!popup) {
+      setDownloading(false);
+      setErrorMessage("Popup was blocked. Please allow popups for this site.");
+      return;
+    }
+
+    const focusInterval = setInterval(() => {
+      try {
+        if (!popup || popup.closed) {
+          clearInterval(focusInterval);
+        } else {
+          popup.focus();
+        }
+      } catch { }
+    }, 400);
+
+    try {
+      popup.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Preparing PDF…</title>
+            <meta charset="UTF-8" />
+            <style>
+              body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
+              .loader { text-align: center; }
+              .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="loader">
+              <div class="spinner"></div>
+              <p><strong>Generating PDF…</strong></p>
+              <p>This window will continue automatically.</p>
+            </div>
+          </body>
+        </html>
+      `);
+
+      await handleDownloadPDF();
+
+      if (!popup.closed) {
+        popup.location.href = "https://www.ilovepdf.com/pdf_to_word";
+        setTimeout(() => popup.focus(), 200);
       }
 
-      const blob = (await response.blob()) as Blob;
-      saveAs(blob, `LandScale_Report_${formData.lotNo || "Document"}.docx`);
-    } catch (error: any) {
-      setErrorMessage(error.message || "Word generation failed.");
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      if (!popup.closed) popup.close();
+      setErrorMessage("PDF generation failed. Please try again.");
     } finally {
-      setDownloadingWord(false);
+      setDownloading(false);
     }
   };
 
@@ -450,27 +566,57 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
       )}
 
       <header className="bg-white border-b px-8 py-4 flex justify-between items-center z-30 shadow-sm shrink-0">
-        <div className="flex items-center gap-6">
-          <button onClick={() => setViewMode('library')} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all">
+        <div className="flex items-center gap-6 flex-1">
+          <button onClick={onBack} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all">
             <ArrowLeft size={22}/>
           </button>
-          <div className="flex items-center gap-4 text-left">
-            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-              <BookOpen size={24} />
+          <div className="flex items-center gap-4 text-left border-r pr-6 border-slate-100">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <PenLine size={20} />
             </div>
             <div className="text-left">
-              <h1 className="text-xl font-black text-slate-900 leading-none">{selectedTemplate?.name}</h1>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Active Editor</p>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  className={`bg-transparent text-lg font-black tracking-tight outline-none border-b-2 transition-all ${
+                    isNameUnique === false || projectName === "Untitled Project" ? 'border-red-500 text-red-600' : isNameUnique === true ? 'border-emerald-500 text-slate-900' : 'border-slate-200 text-slate-900'
+                  } focus:border-blue-600 min-w-[200px]`}
+                />
+                <div className="w-6 flex items-center justify-center">
+                  {checkingName ? <Loader2 size={16} className="animate-spin text-slate-400" /> : 
+                   (isNameUnique === true && projectName !== "Untitled Project") ? <Check size={16} className="text-emerald-500" /> : 
+                   (isNameUnique === false || projectName === "Untitled Project") ? <X size={16} className="text-red-500" /> : null}
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                {projectName === "Untitled Project" ? 'Name Required' : isNameUnique === false ? 'Name Taken' : isNameUnique === true ? 'Name Available' : 'Naming Project...'}
+              </p>
             </div>
           </div>
         </div>
-        <button 
-          onClick={fillSampleData}
-          className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100"
-        >
-          <Wand2 size={16} />
-          Fill Sample Data
-        </button>
+        
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={fillSampleData}
+            className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100"
+          >
+            <Wand2 size={16} />
+            Fill Samples
+          </button>
+          
+          <button 
+            onClick={handleSave} 
+            disabled={saving || isNameUnique === false || projectName === "Untitled Project"}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md ${
+              showSuccess ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
+            }`}
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : showSuccess ? <Check size={16} /> : <Save size={16} />}
+            {saving ? "Saving..." : showSuccess ? "Synced" : "Save Work"}
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
@@ -479,10 +625,17 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
             {errorMessage && (
               <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex gap-3 items-start animate-shake text-left">
                 <AlertCircle size={20} className="text-red-500 shrink-0" />
-                <p className="text-xs font-bold text-red-600 leading-tight">{errorMessage}</p>
+                <p className="text-xs font-bold text-red-600 leading-tight flex-1">{errorMessage}</p>
                 <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-600">
                   <X size={16} />
                 </button>
+              </div>
+            )}
+
+            {projectName === "Untitled Project" && (
+              <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-center text-left">
+                <AlertCircle size={20} className="text-blue-500 shrink-0" />
+                <p className="text-xs font-bold text-blue-700">Please provide a unique project name to enable exports.</p>
               </div>
             )}
 
@@ -552,29 +705,23 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
           </div>
 
           <div className="p-8 bg-slate-50 border-t space-y-4">
-            <button 
-              onClick={handleSave} 
-              disabled={saving} 
-              className={`w-full py-6 rounded-2xl flex items-center justify-center gap-3 font-black text-sm tracking-widest transition-all shadow-xl uppercase ${
-                showSuccess ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {saving ? <Loader2 size={24} className="animate-spin" /> : showSuccess ? <CheckCircle size={24} /> : <Save size={24} />}
-              {saving ? "SAVING..." : showSuccess ? "REPORT SAVED" : "CLOUD SYNC"}
-            </button>
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={handleDownloadPDF} 
-                disabled={downloading}
-                className="bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all uppercase disabled:opacity-50 shadow-md"
+                disabled={downloading || !isNameValid}
+                className={`py-4 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all uppercase shadow-md ${
+                  isNameValid ? 'bg-slate-900 text-white hover:opacity-90' : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                }`}
               >
                 {downloading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16}/>}
                 PDF EXPORT
               </button>
               <button 
                 onClick={handleDownloadWord} 
-                disabled={downloadingWord}
-                className="bg-slate-200 text-slate-700 py-4 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-slate-300 transition-all uppercase shadow-md disabled:opacity-50"
+                disabled={downloadingWord || !isNameValid}
+                className={`py-4 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all uppercase shadow-md ${
+                  isNameValid ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
               >
                 {downloadingWord ? <Loader2 size={16} className="animate-spin" /> : <Download size={16}/>}
                 WORD EXPORT
