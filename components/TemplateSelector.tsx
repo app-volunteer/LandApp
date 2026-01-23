@@ -28,7 +28,7 @@ import { auth } from "../firebase";
 import { fetchTemplates, saveProjectToFirestore, seedTemplatesToCloud } from "../utils/templates";
 import saveAs from "file-saver";
 
-const BACKEND_URL = "https://backendservice-cpyt.onrender.com";
+const BACKEND_URL = "https://backendservice-9ss2.onrender.com";
 
 // Professional Field Configuration
 const fieldConfig: Record<string, { label: string; placeholder: string; type: 'text' | 'image' | 'date' | 'email' | 'currency' | 'number'; lettersOnly?: boolean; sample?: string }> = {
@@ -119,7 +119,8 @@ const compressImage = (file: File): Promise<string> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1000;
+        // Conservative width (800px) ensures base64 strings stay within safe limits for PDF engines
+        const MAX_WIDTH = 800; 
         let width = img.width;
         let height = img.height;
         if (width > MAX_WIDTH) {
@@ -129,9 +130,14 @@ const compressImage = (file: File): Promise<string> => {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-        resolve(`<img src="${dataUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />`);
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+        }
+        // Slightly lower quality (0.7) for maximum reliability in headless rendering
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+        resolve(`<img src="${dataUrl}" border="0" style="display: block; margin: 0 auto; max-width: 100%; height: auto; object-fit: contain;" />`);
       };
       img.onerror = reject;
     };
@@ -278,8 +284,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
     setDownloading(true);
     setErrorMessage(null);
     try {
-      const backendUrl = `${BACKEND_URL}/api/generate-pdf`;
-      const response = await fetch(backendUrl, {
+      const response = await fetch(`${BACKEND_URL}/api/generate-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -293,7 +298,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
         throw new Error(errorData.error || "PDF generation service failure.");
       }
 
-      const blob = await response.blob();
+      const blob = (await response.blob()) as Blob;
       saveAs(blob, `LandScale_Report_${formData.lotNo || "Document"}.pdf`);
     } catch (error: any) {
       setErrorMessage(error.message || "PDF generation failed.");
@@ -307,8 +312,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
     setDownloadingWord(true);
     setErrorMessage(null);
     try {
-      const backendUrl = `${BACKEND_URL}/api/generate-docx`;
-      const response = await fetch(backendUrl, {
+      const response = await fetch(`${BACKEND_URL}/api/generate-docx`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -322,7 +326,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
         throw new Error(errorData.error || "Word generation service failure.");
       }
 
-      const blob = await response.blob();
+      const blob = (await response.blob()) as Blob;
       saveAs(blob, `LandScale_Report_${formData.lotNo || "Document"}.docx`);
     } catch (error: any) {
       setErrorMessage(error.message || "Word generation failed.");
@@ -348,9 +352,9 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
 
   if (viewMode === 'library') {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-left">
+      <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-left text-slate-900">
         <header className="bg-white border-b px-8 py-5 flex justify-between items-center sticky top-0 z-50">
-          <div className="flex items-center gap-6 text-left">
+          <div className="flex items-center gap-6">
             <button onClick={onBack} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all">
               <ArrowLeft size={22}/>
             </button>
@@ -424,7 +428,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left">
+    <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left text-slate-900">
       {(downloading || downloadingWord) && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center p-12 transition-all text-center">
           <div className="w-full max-w-md space-y-6">
@@ -446,7 +450,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
       )}
 
       <header className="bg-white border-b px-8 py-4 flex justify-between items-center z-30 shadow-sm shrink-0">
-        <div className="flex items-center gap-6 text-left">
+        <div className="flex items-center gap-6">
           <button onClick={() => setViewMode('library')} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all">
             <ArrowLeft size={22}/>
           </button>
@@ -471,7 +475,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
 
       <div className="flex-1 flex overflow-hidden">
         <aside className="w-full lg:w-[450px] bg-white border-r flex flex-col z-20 shadow-xl overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar text-left">
+          <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar text-left text-slate-900">
             {errorMessage && (
               <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex gap-3 items-start animate-shake text-left">
                 <AlertCircle size={20} className="text-red-500 shrink-0" />
@@ -482,12 +486,12 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
               </div>
             )}
 
-            <div className="flex items-center gap-3 text-blue-600 text-left">
+            <div className="flex items-center gap-3 text-blue-600">
               <div className="p-2 bg-blue-50 rounded-lg"><Eye size={20} /></div>
               <span className="text-xs font-black uppercase tracking-[0.2em]">Data Injection</span>
             </div>
             
-            <div className="space-y-8 text-left">
+            <div className="space-y-8 text-left text-slate-900">
               {Object.keys(formData).map(key => {
                 const config = fieldConfig[key];
                 if (!config) return null;
@@ -497,7 +501,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
                 return (
                   <div key={key} className="space-y-3 text-left">
                     <div className="flex justify-between items-center text-left">
-                      <label className={`block text-[11px] font-black uppercase tracking-widest text-left ${isEmailInvalid ? 'text-red-500' : 'text-slate-700'}`}>
+                      <label className={`block text-[11px] font-black uppercase tracking-widest ${isEmailInvalid ? 'text-red-500' : 'text-slate-700'}`}>
                         {config.label}
                       </label>
                       <div className="opacity-50">
@@ -533,7 +537,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
                         type={config.type === 'date' ? 'date' : 'text'}
                         value={formData[key]} 
                         onChange={(e) => handleFieldChange(key, e.target.value)} 
-                        className={`w-full border-2 rounded-2xl px-5 py-4 outline-none transition-all text-sm font-semibold shadow-sm text-left ${
+                        className={`w-full border-2 rounded-2xl px-5 py-4 outline-none transition-all text-sm font-semibold shadow-sm text-slate-900 ${
                           isEmailInvalid 
                             ? 'border-red-200 bg-red-50 text-red-900' 
                             : 'border-slate-100 bg-slate-50 text-slate-900 focus:bg-white focus:border-blue-500'
@@ -579,7 +583,7 @@ export default function TemplateSelector({ onBack }: TemplateSelectorProps) {
           </div>
         </aside>
 
-        <main className="flex-1 bg-slate-200 overflow-y-auto p-12 flex justify-center no-scrollbar relative text-left">
+        <main className="flex-1 bg-slate-200 overflow-y-auto p-12 flex justify-center no-scrollbar relative text-left text-slate-900">
           <div className="shadow-[0_60px_100px_-40px_rgba(0,0,0,0.4)] bg-white origin-top scale-[0.85] lg:scale-100 mb-20 text-left">
             <div 
               id="template-preview" 

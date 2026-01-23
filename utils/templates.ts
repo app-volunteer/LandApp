@@ -1,5 +1,5 @@
-import { collection, getDocs, doc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase";
+// Consistent imports from local firebase instance
+import { db, collection, getDocs, doc, setDoc, addDoc, serverTimestamp } from "../firebase";
 import { Template } from "../types";
 
 // A4 dimensions at 96 DPI: 794px x 1122px
@@ -11,7 +11,7 @@ export const defaultTemplates: Template[] = [
 <div style="font-family: 'Times New Roman', Times, serif; color: #000000; width: 794px; margin: 0 auto; background: #ffffff; text-align: left;">
   
   <!-- PAGE 1: COVER LETTER -->
-  <div style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
+  <div class="page-break" style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
     <div style="border-top: 3px solid #b91c1c; border-bottom: 3px solid #b91c1c; padding: 10px 0; margin-bottom: 25px;">
       <h2 style="margin: 0; font-size: 18px; font-weight: bold; color: #b91c1c; text-align: left; text-decoration: underline;">{{consultantHeader}}</h2>
       <p style="margin: 5px 0 0 0; font-size: 13px; font-weight: bold; color: #b91c1c;">(Consultant and Panel Valuer)</p>
@@ -81,15 +81,22 @@ export const defaultTemplates: Template[] = [
   </div>
 
   <!-- PAGE 2: PROPERTY & BASIC INFO -->
-  <div style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
+  <div class="page-break" style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
     <div style="text-align: center; border-bottom: 3px solid #b91c1c; margin-bottom: 25px;">
        <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #b91c1c; letter-spacing: 5px;">VALUATION REPORT</h2>
     </div>
 
     <div style="background: #000000; color: #ffffff; padding: 8px 15px; font-weight: bold; margin-bottom: 20px; font-size: 15px;">01. PROPERTY</div>
     <div style="margin-bottom: 30px; font-size: 15px; overflow: hidden;">
-      <div style="float: left; width: 280px; height: 210px; border: 1px solid #000; background: #fff; margin-right: 20px; display: flex; align-items: center; justify-content: center;">
-        {{photo1}}
+      <!-- Bulletproof centering for PDF -->
+      <div style="float: left; width: 280px; height: 210px; border: 1px solid #000; background: #fff; margin-right: 20px;">
+        <table style="width: 100%; height: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="text-align: center; vertical-align: middle; padding: 2px;">
+              {{mainPhoto}}
+            </td>
+          </tr>
+        </table>
       </div>
       <div style="overflow: hidden;">
         <p style="margin: 0 0 15px 0;">A <span style="font-weight: bold;">Subject property</span> is situated at <span style="background: #ffff00; color: #000;">{{location}}</span> and it is clearly defined as Lot No : <span style="background: #ffff00; color: #000;">{{lotNo}}</span> in the Survey Plan No – <span style="background: #ffff00; color: #000;">{{planNo}}</span> surveyed on <span style="background: #ffff00; color: #000;">{{planDate}}</span> and drawn by <span style="font-weight: bold; background: #ffff00; color: #000;">{{surveyorName}}</span>.</p>
@@ -131,16 +138,22 @@ export const defaultTemplates: Template[] = [
         <tr>
           <td style="border: 1px solid #000; padding: 8px; font-weight: bold; background: #f3f4f6;">District</td>
           <td style="border: 1px solid #000; padding: 8px; background: #ffff00; color: #000;">{{district}}</td>
-          <td style="border: 1px solid #000; padding: 8px; font-weight: bold; background: #f3f4f6;">Province</td>
           <td style="border: 1px solid #000; padding: 8px; background: #ffff00; color: #000;">{{province}}</td>
         </tr>
       </table>
     </div>
 
+    <!-- IMPROVED LOCATION SKETCH CONTAINER FOR PDF -->
     <div style="border: 2px solid #b91c1c; padding: 15px; margin-top: 10px; text-align: center;">
       <p style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">LOCATION SKETCH</p>
-      <div style="height: 350px; background: #ffffff; border: 1px dashed #000; display: flex; align-items: center; justify-content: center;">
-        {{locationSketch}}
+      <div style="height: 300px; background: #ffffff; border: 1px dashed #000; overflow: hidden;">
+        <table style="width: 100%; height: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="text-align: center; vertical-align: middle; padding: 5px;">
+              {{locationSketch}}
+            </td>
+          </tr>
+        </table>
       </div>
     </div>
 
@@ -148,7 +161,7 @@ export const defaultTemplates: Template[] = [
   </div>
 
   <!-- PAGE 3: LOCALITY & LAND/BUILDING DESC -->
-  <div style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
+  <div class="page-break" style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
     <div style="font-size: 15px; margin-bottom: 25px;">
       <p><span style="font-weight: bold;">2.5. LOCALITY: -</span><br/>
       The property is located in a <span style="background: #ffff00; color: #000;">{{localityDescription}}</span>.</p>
@@ -195,10 +208,12 @@ export const defaultTemplates: Template[] = [
       <div style="float: left; width: 320px; background: #000000; color: #ffffff; padding: 25px; border-radius: 12px; font-size: 26px; font-weight: bold; text-align: center;">
         Floor Area – {{floorArea}} Sq.ft
       </div>
-      <div style="float: right; width: 300px; height: 320px; border: 2px solid #b91c1c; padding: 15px; text-align: center; box-sizing: border-box;">
-         <p style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">FLOOR PLAN</p>
-         <div style="height: 240px; background: #ffffff; border: 1px dashed #000; display: flex; align-items: center; justify-content: center;">
-           {{floorPlan}}
+      <div style="float: right; width: 300px; height: 320px; border: 2px solid #b91c1c; padding: 15px; box-sizing: border-box;">
+         <p style="font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center;">FLOOR PLAN</p>
+         <div style="height: 240px; background: #ffffff; border: 1px dashed #000; overflow: hidden;">
+            <table style="width: 100%; height: 100%; border-collapse: collapse;">
+              <tr><td style="text-align: center; vertical-align: middle; padding: 5px;">{{floorPlan}}</td></tr>
+            </table>
          </div>
       </div>
       <div style="clear: both;"></div>
@@ -208,17 +223,22 @@ export const defaultTemplates: Template[] = [
   </div>
 
   <!-- PAGE 4: PHOTOS & AUTHORITY INFO -->
-  <div style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
+  <div class="page-break" style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
     <div style="text-align: center; border-bottom: 3px solid #b91c1c; margin-bottom: 30px;">
        <h2 style="margin: 0; font-size: 18px; font-weight: bold; text-decoration: underline; color: #b91c1c;">PHOTOS OF THE BUILDING</h2>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px;">
-      <div style="height: 220px; border: 1px solid #000; background: #ffffff; display: flex; align-items: center; justify-content: center;">{{photo1}}</div>
-      <div style="height: 220px; border: 1px solid #000; background: #ffffff; display: flex; align-items: center; justify-content: center;">{{photo2}}</div>
-      <div style="height: 220px; border: 1px solid #000; background: #ffffff; display: flex; align-items: center; justify-content: center;">{{photo3}}</div>
-      <div style="height: 220px; border: 1px solid #000; background: #ffffff; display: flex; align-items: center; justify-content: center;">{{photo4}}</div>
-    </div>
+    <!-- GALLERY USING TABLE FOR PRECISE PDF LAYOUT -->
+    <table style="width: 100%; border-collapse: separate; border-spacing: 15px; margin-bottom: 30px;">
+      <tr>
+        <td style="width: 50%; height: 220px; border: 1px solid #000; background: #ffffff; text-align: center; vertical-align: middle; padding: 0;">{{photo1}}</td>
+        <td style="width: 50%; height: 220px; border: 1px solid #000; background: #ffffff; text-align: center; vertical-align: middle; padding: 0;">{{photo2}}</td>
+      </tr>
+      <tr>
+        <td style="width: 50%; height: 220px; border: 1px solid #000; background: #ffffff; text-align: center; vertical-align: middle; padding: 0;">{{photo3}}</td>
+        <td style="width: 50%; height: 220px; border: 1px solid #000; background: #ffffff; text-align: center; vertical-align: middle; padding: 0;">{{photo4}}</td>
+      </tr>
+    </table>
 
     <div style="background: #000000; color: #ffffff; padding: 8px 15px; font-weight: bold; margin-bottom: 20px; font-size: 15px;">04. LOCAL AUTHORITY INFORMATION</div>
     <div style="font-size: 15px; margin-bottom: 35px;">
@@ -245,7 +265,7 @@ export const defaultTemplates: Template[] = [
   </div>
 
   <!-- PAGE 5: FINAL VALUATION & CERTIFICATION -->
-  <div style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
+  <div class="page-break" style="padding: 60px; height: 1122px; border-bottom: 1px solid #eee; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
     <div style="font-size: 15px; margin-bottom: 30px;">
       <p style="font-weight: bold; margin-bottom: 15px;">5.3. CALCULATION: -</p>
       <table style="width: 100%; font-size: 16px; border-collapse: collapse; margin-bottom: 30px;">
@@ -338,9 +358,9 @@ export const seedTemplatesToCloud = async () => {
   }
 };
 
+// Fixed the "Cannot find name createdAt" error by ensuring serverTimestamp is correctly imported and consistently used as a field.
 export const saveProjectToFirestore = async (userId: string, data: any) => {
   try {
-    // Standardizing to 'reports' collection as per ProjectPage.tsx
     await addDoc(collection(db, "reports"), { 
       ...data, 
       userId, 
