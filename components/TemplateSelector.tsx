@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Template, Project } from "../types";
+import {PDFConfirmationModal} from "../components/PDFConfirmationModal"
 import { 
   BookOpen, 
   ArrowLeft, 
@@ -36,10 +37,12 @@ const BACKEND_URL = "https://backendservice-9ss2.onrender.com";
 // Professional Field Configuration
 const fieldConfig: Record<string, { label: string; placeholder: string; type: 'text' | 'image' | 'date' | 'email' | 'currency' | 'number'; lettersOnly?: boolean; sample?: string }> = {
   consultantHeader: { label: "Valuer Header Credentials", placeholder: "e.g., S.Rajeef, PG Dip in REMV...", type: "text", sample: "S. Rajeef, PG Dip in REMV (SJP), M.I.V (Sri Lanka)" },
-  consultantAddress: { label: "Valuer Address", placeholder: "176/3, Temple Road, Nallur, Jaffna", type: "text", sample: "176/3, Temple Road, Nallur, Jaffna" },
+  consultantAddress: { label: "Valuer Address", placeholder: "176/3, Temple Road, Nallur", type: "text", sample: "176/3, Temple Road, Nallur" },
+  consultantCity: { label: "Valuer City", placeholder: "Jaffna", type: "text", lettersOnly: true, sample: "Jaffna" },
   consultantEmail: { label: "Valuer Email (Gmail)", placeholder: "saththiya@gmail.com", type: "email", sample: "saththiya.valuer@gmail.com" },
   consultantPhone: { label: "Valuer Phone", placeholder: "0772290303", type: "text", sample: "077-2290303" },
   valuerSignatureName: { label: "Valuer Signature Name", placeholder: "S.Rajeef", type: "text", lettersOnly: true, sample: "S. Rajeef" },
+  valuerQualifications: { label: "Valuer Qualifications", placeholder: "(B.Sc. (Special) E.M.V (SriLanka), A.I.V (Sri Lanka)", type: "text", sample: "(B.Sc. (Special) E.M.V (SriLanka), A.I.V (Sri Lanka)" },
   valuationDate: { label: "Report Date", placeholder: "Select date", type: "date", sample: new Date().toISOString().split('T')[0] },
   inspectionDate: { label: "Inspection Date", placeholder: "Select date", type: "date", sample: new Date().toISOString().split('T')[0] },
   lotNo: { label: "Lot Number", placeholder: "01", type: "number", sample: "01" },
@@ -47,6 +50,7 @@ const fieldConfig: Record<string, { label: string; placeholder: string; type: 't
   planDate: { label: "Survey Plan Date", placeholder: "Select date", type: "date", sample: "2024-05-12" },
   surveyorName: { label: "Surveyor Name", placeholder: "T.Thangarajah", type: "text", lettersOnly: true, sample: "T. Thangarajah" },
   requestBy: { label: "Requested By (Client)", placeholder: "NAKULESWARY - RAMACHANDRAN", type: "text", lettersOnly: true, sample: "RAMACHANDRAN NAKULESWARY" },
+  requestByNIC: { label: "Requester NIC Number", placeholder: "196170500838", type: "text", sample: "196170500838" },
   ownerName: { label: "Owner Name", placeholder: "Ramachandran - Nakuleswary", type: "text", lettersOnly: true, sample: "R. NAKULESWARY" },
   location: { label: "Property Address", placeholder: "Ass.No – 8/2, Arasady Lane...", type: "text", sample: "Ass.No – 8/2, Arasady Lane, Nallur, Jaffna" },
   landName: { label: "Name of Land", placeholder: "e.g. 'Arasady Valavu'", type: "text", sample: "Arasady Valavu" },
@@ -57,6 +61,13 @@ const fieldConfig: Record<string, { label: string; placeholder: string; type: 't
   dsDivision: { label: "DS Division", placeholder: "Jaffna", type: "text", lettersOnly: true, sample: "Jaffna" },
   district: { label: "District", placeholder: "Jaffna", type: "text", lettersOnly: true, sample: "Jaffna" },
   province: { label: "Province", placeholder: "Northern Province", type: "text", lettersOnly: true, sample: "Northern Province" },
+  accessPoint: { label: "Access Starting Point", placeholder: "Thaddatheru Junction", type: "text", sample: "Thaddatheru Junction" },
+  accessRoad: { label: "Access Road Name", placeholder: "Arasady Lane", type: "text", sample: "Arasady Lane" },
+  accessDistance: { label: "Access Distance", placeholder: "500 meters", type: "text", sample: "500 meters" },
+  localityType: { label: "Locality Type", placeholder: "Residential/Commercial/Mixed", type: "text", sample: "Residential" },
+  localityDensity: { label: "Population Density", placeholder: "high/medium/low", type: "text", sample: "high" },
+  localityDevelopment: { label: "Development Type", placeholder: "commercial/residential", type: "text", sample: "commercial" },
+  publicAmenities: { label: "Public Amenities", placeholder: "Schools, Hospitals, Banks, Markets", type: "text", sample: "Schools, Hospitals, Banks, Post Office, and Markets" },
   localityDescription: { label: "Locality Description", placeholder: "Residentially developed area...", type: "text", sample: "Well-developed residential area with basic infrastructure." },
   deedType: { label: "Deed Type", placeholder: "Gift/Transfer", type: "text", lettersOnly: true, sample: "Transfer" },
   deedNo: { label: "Deed Number", placeholder: "4567", type: "text", sample: "4567/2023" },
@@ -64,26 +75,37 @@ const fieldConfig: Record<string, { label: string; placeholder: string; type: 't
   notaryName: { label: "Notary Name", placeholder: "S.Kumar", type: "text", lettersOnly: true, sample: "S. Kumar" },
   extentDeed: { label: "Extent (Deed)", placeholder: "10.5 Perches", type: "text", sample: "10.5 Perches" },
   extentPlan: { label: "Extent (Plan)", placeholder: "10.45 Perches", type: "text", sample: "10.45 Perches" },
+  extentPerches: { label: "Extent in Perches Only", placeholder: "16.50", type: "number", sample: "16.50" },
+  landShape: { label: "Shape of Land", placeholder: "Regular/Irregular", type: "text", sample: "Regular" },
+  landNature: { label: "Nature of Land", placeholder: "Flat/Slightly sloping", type: "text", sample: "Flat and leveled" },
+  soilType: { label: "Soil Type", placeholder: "Sandy/Clay/Loam", type: "text", sample: "Sandy loam" },
   boundaryNorth: { label: "Boundary North", placeholder: "Properties of M.Maheswary...", type: "text", sample: "Properties of M. Maheswary" },
   boundaryEast: { label: "Boundary East", placeholder: "Properties of S.Thurailingam...", type: "text", sample: "Properties of S. Thurailingam" },
   boundarySouth: { label: "Boundary South", placeholder: "Lane & Balance Property", type: "text", sample: "Public Lane" },
   boundaryWest: { label: "Boundary West", placeholder: "Properties of N.Jeyaladsumy...", type: "text", sample: "Properties of N. Jeyaladsumy" },
-  buildingDescription: { label: "Building Description", placeholder: "Single story residential house...", type: "text", sample: "Single-story modern residential house with concrete foundation." },
-  accomodation: { label: "Accomodation", placeholder: "3 Bedrooms, Hall, Kitchen...", type: "text", sample: "3 Bedrooms, Living Room, Dining, Kitchen, and Verandah" },
-  buildingAge: { label: "Building Age (Years)", placeholder: "12", type: "number", sample: "12" },
-  conveniences: { label: "Conveniences", placeholder: "Water, Electricity, etc.", type: "text", sample: "Water, Electricity, and Telephone connectivity" },
-  floorArea: { label: "Floor Area (Sq.ft)", placeholder: "1250", type: "number", sample: "1250" },
-  comparablePriceMin: { label: "Min Comp Price (Rs)", placeholder: "400,000", type: "currency", sample: "450,000" },
-  comparablePriceMax: { label: "Max Comp Price (Rs)", placeholder: "600,000", type: "currency", sample: "550,000" },
-  extentUsed: { label: "Extent Used for Calc", placeholder: "10.45", type: "number", sample: "10.45" },
-  landValueCalc: { label: "Land Value Result", placeholder: "5,000,000", type: "currency", sample: "5,225,000" },
-  buildingValueCalc: { label: "Building Value Result", placeholder: "3,500,000", type: "currency", sample: "3,275,000" },
-  marketValue: { label: "Total Market Value (Rs)", placeholder: "8,500,000", type: "currency", sample: "8,500,000" },
-  marketValueText: { label: "Market Value (Million)", placeholder: "8.5", type: "text", sample: "8.5" },
-  forcedSaleValue: { label: "Forced Sale Value (Rs)", placeholder: "e.g. 6,500,000", type: "currency", sample: "6,375,000" },
-  insuranceValue: { label: "Insurance Value (Rs)", placeholder: "e.g. 4,000,000", type: "currency", sample: "4,000,000" },
+  buildingDescription: { label: "Building Description", placeholder: "Single story residential house...", type: "text", sample: "It is an Asbestos Roofed Residential Building supported by timber rafters rested on reinforced cement concrete columns." },
+  accomodation: { label: "Accomodation", placeholder: "3 Bedrooms, Hall, Kitchen...", type: "text", sample: "Two Rooms, Hall, Kitchen, Open Verandah and Attached Toilet & Bathroom facilities" },
+  buildingAge: { label: "Building Age (Years)", placeholder: "12", type: "number", sample: "50" },
+  buildingCondition: { label: "Building Condition", placeholder: "Good/Fair/Poor", type: "text", sample: "Good" },
+  conveniences: { label: "Conveniences", placeholder: "Water, Electricity, etc.", type: "text", sample: "Electricity, Valance board, Water supply and Ceiling facilities" },
+  floorArea: { label: "Floor Area (Sq.ft)", placeholder: "1250", type: "number", sample: "800" },
+  comparablePriceMin: { label: "Min Comp Price (Rs/Perch)", placeholder: "400,000", type: "currency", sample: "500,000" },
+  comparablePriceMax: { label: "Max Comp Price (Rs/Perch)", placeholder: "600,000", type: "currency", sample: "700,000" },
+  extentUsed: { label: "Extent Used for Calc", placeholder: "0A-0R-16.50P", type: "text", sample: "0A-0R-16.50P" },
+  landRatePerPerch: { label: "Land Rate per Perch (Rs)", placeholder: "600,000", type: "currency", sample: "600,000" },
+  landValueCalc: { label: "Land Value Result", placeholder: "9,900,000", type: "currency", sample: "9,900,000.00" },
+  buildingRatePerSqft: { label: "Building Rate per Sq.ft (Rs)", placeholder: "3,500", type: "currency", sample: "3,500" },
+  buildingValueCalc: { label: "Building Value Result", placeholder: "2,800,000", type: "currency", sample: "2,800,000.00" },
+  totalValue: { label: "Total Value (Rs)", placeholder: "12,700,000", type: "currency", sample: "12,700,000.00" },
+  marketValue: { label: "Market Value (Rs)", placeholder: "12,700,000", type: "currency", sample: "12,700,000" },
+  marketValueText: { label: "Market Value in Words", placeholder: "Twelve Million & Seven Hundred Thousand", type: "text", sample: "12.7 Million (Rupees Twelve Million & Seven Hundred Thousand Only)" },
+  forcedSaleValue: { label: "Forced Sale Value (Rs)", placeholder: "9,500,000", type: "currency", sample: "9,500,000" },
+  forcedSaleValueText: { label: "Forced Sale Value in Words", placeholder: "Nine Million & Five Hundred Thousand", type: "text", sample: "Rupees Nine Million & Five Hundred Thousand Only" },
+  insuranceValue: { label: "Insurance Value (Rs)", placeholder: "2,800,000", type: "currency", sample: "2,800,000" },
+  insuranceValueText: { label: "Insurance Value in Words", placeholder: "Two Million & Eight Hundred Thousand", type: "text", sample: "Rupees Two Million & Eight Hundred Thousand Only" },
   mainPhoto: { label: "Primary Photo", placeholder: "", type: "image" },
   locationSketch: { label: "Location Sketch", placeholder: "", type: "image" },
+  locationSketchLabel: { label: "Location Sketch Label", placeholder: "Location Sketch", type: "text" },
   floorPlan: { label: "Floor Plan", placeholder: "", type: "image" },
   photo1: { label: "Gallery Photo 1", placeholder: "", type: "image" },
   photo2: { label: "Gallery Photo 2", placeholder: "", type: "image" },
@@ -170,9 +192,8 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   const [searchQuery, setSearchQuery] = useState("");
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [showImageNotice, setShowImageNotice] = useState(false);
-  const [noticeCount, setNoticeCount] = useState(() => {
-    return parseInt(localStorage.getItem("imageNoticeCount") || "0");
-  });
+  const [showPDFConfirmation, setShowPDFConfirmation] = useState(false);
+
 
   const isNameValid = projectName.trim() !== "";
 
@@ -288,9 +309,6 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   };
 
   const dismissNotice = () => {
-    const newCount = noticeCount + 1;
-    setNoticeCount(newCount);
-    localStorage.setItem("imageNoticeCount", newCount.toString());
     setShowImageNotice(false);
   };
 
@@ -301,7 +319,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
     }
 
     const hasImages = Object.keys(formData).some(key => fieldConfig[key]?.type === 'image' && formData[key] !== "");
-    if (hasImages && noticeCount < 2) {
+    if (hasImages) {
       setShowImageNotice(true);
     }
 
@@ -367,77 +385,112 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
     }
   };
 
-  const handleDownloadWord = async () => {
-    if (!isNameValid) {
-      alert("Please name the project before exporting.");
-      return;
-    }
-    if (!selectedTemplate) return;
+const handleDownloadWord = async () => {
+  if (!isNameValid) {
+    alert("Please name the project before exporting.");
+    return;
+  }
+  if (!selectedTemplate) return;
 
-    setDownloading(true);
-    setErrorMessage(null);
+  // Show confirmation modal
+  setShowPDFConfirmation(true);
+};
 
-    const popup = window.open(
-      "about:blank",
-      "_blank",
-      "width=900,height=600,resizable=yes,scrollbars=yes"
-    );
+// Handler for "Yes, I have PDF"
+const handleHasPDF = () => {
+  setShowPDFConfirmation(false);
+  
+  const popup = window.open(
+    "https://www.ilovepdf.com/pdf_to_word",
+    "_blank",
+    "width=900,height=600,resizable=yes,scrollbars=yes"
+  );
 
-    if (!popup) {
-      setDownloading(false);
-      setErrorMessage("Popup was blocked. Please allow popups for this site.");
-      return;
-    }
+  if (!popup) {
+    setErrorMessage("Popup was blocked. Please allow popups for this site.");
+    return;
+  }
 
-    const focusInterval = setInterval(() => {
-      try {
-        if (!popup || popup.closed) {
-          clearInterval(focusInterval);
-        } else {
-          popup.focus();
-        }
-      } catch { }
-    }, 400);
-
+  // Focus the popup window
+  const focusInterval = setInterval(() => {
     try {
-      popup.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Preparing PDF…</title>
-            <meta charset="UTF-8" />
-            <style>
-              body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
-              .loader { text-align: center; }
-              .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            </style>
-          </head>
-          <body>
-            <div class="loader">
-              <div class="spinner"></div>
-              <p><strong>Generating PDF…</strong></p>
-              <p>This window will continue automatically.</p>
-            </div>
-          </body>
-        </html>
-      `);
-
-      await handleDownloadPDF();
-
-      if (!popup.closed) {
-        popup.location.href = "https://www.ilovepdf.com/pdf_to_word";
-        setTimeout(() => popup.focus(), 200);
+      if (!popup || popup.closed) {
+        clearInterval(focusInterval);
+      } else {
+        popup.focus();
       }
+    } catch { }
+  }, 400);
+};
 
-    } catch (error) {
-      console.error("PDF generation error:", error);
-      if (!popup.closed) popup.close();
-      setErrorMessage("PDF generation failed. Please try again.");
-    } finally {
-      setDownloading(false);
+// Handler for "No, generate PDF"
+const handleGeneratePDF = async () => {
+  setShowPDFConfirmation(false);
+  setDownloading(true);
+  setErrorMessage(null);
+
+  const popup = window.open(
+    "about:blank",
+    "_blank",
+    "width=900,height=600,resizable=yes,scrollbars=yes"
+  );
+
+  if (!popup) {
+    setDownloading(false);
+    setErrorMessage("Popup was blocked. Please allow popups for this site.");
+    return;
+  }
+
+  const focusInterval = setInterval(() => {
+    try {
+      if (!popup || popup.closed) {
+        clearInterval(focusInterval);
+      } else {
+        popup.focus();
+      }
+    } catch { }
+  }, 400);
+
+  try {
+    popup.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Preparing PDF…</title>
+          <meta charset="UTF-8" />
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
+            .loader { text-align: center; }
+            .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          </style>
+        </head>
+        <body>
+          <div class="loader">
+            <div class="spinner"></div>
+            <p><strong>Generating PDF…</strong></p>
+            <p>This window will continue automatically.</p>
+          </div>
+        </body>
+      </html>
+    `);
+
+    await handleDownloadPDF();
+
+    if (!popup.closed) {
+      popup.location.href = "https://www.ilovepdf.com/pdf_to_word";
+      setTimeout(() => popup.focus(), 200);
     }
-  };
+
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    if (!popup.closed) popup.close();
+    setErrorMessage("PDF generation failed. Please try again.");
+  } finally {
+    clearInterval(focusInterval);
+    setDownloading(false);
+  }
+};
 
   const filteredTemplates = templates.filter(t => 
     t.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -751,6 +804,13 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
           100% { transform: scaleX(0); transform-origin: right; }
         }
       `}</style>
+          {showPDFConfirmation && (
+      <PDFConfirmationModal
+        onConfirm={handleHasPDF}
+        onCancel={handleGeneratePDF}
+        onClose={() => setShowPDFConfirmation(false)}
+      />
+    )}
     </div>
   );
 }
