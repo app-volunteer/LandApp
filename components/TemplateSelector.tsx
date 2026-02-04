@@ -302,7 +302,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
     if (!selectedTemplate) return "";
     let html = selectedTemplate.html;
     Object.entries(formData).forEach(([key, value]) => {
-      const displayValue = value || `<span style="color: #cbd5e1; background: #f8fafc; padding: 2px 4px; border-radius: 4px; font-size: 0.8em;">[${key.toUpperCase()} PENDING]</span>`;
+      const displayValue = value || `<span style="color: #cbd5e1; background: #f8fafc; padding: 2px 4px; border-radius: 4px; font-size: 0.8em;">[${key.toUpperCase()}]</span>`;
       html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), displayValue);
     });
     return html;

@@ -35,35 +35,35 @@ export const defaultTemplates: Template[] = [
 <div style="font-family: 'Times New Roman', Times, serif; color: #000000; width: 794px; margin: 0 auto; background: #ffffff; text-align: left;">
   
   <!-- PAGE 1: COVER LETTER -->
-  <div class="page-break" style="padding: 60px; min-height: 1050px; max-height: 1122px; margin-bottom: 30px; border-bottom: 2px solid #ddd; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
+ <div class="page-break" style="padding: 60px; min-height: 1050px; max-height: 1122px; margin-bottom: 30px; border-bottom: 2px solid #ddd; position: relative; box-sizing: border-box; background: #ffffff; page-break-after: always; display: block;">
     <div style="border-top: 3px solid #b91c1c; border-bottom: 3px solid #b91c1c; padding: 10px 0; margin-bottom: 25px;">
-      <p style="margin: 0; font-size: 14px; font-weight: bold; color: #b91c1c; text-align: left; text-decoration: underline;">{{consultantHeader}}</p>
-      <p style="margin: 5px 0 0 0; font-size: 13px; font-weight: bold; color: #b91c1c;">(Consultant and Panel Valuer)</p>
+      <p style="margin: 0; font-size: 14px; font-weight: bold; color: #b91c1c; text-align: left; text-decoration: underline; line-height: 1.2;">{{consultantHeader}}</p>
+      <p style="margin: 5px 0 0 0; font-size: 13px; font-weight: bold; color: #b91c1c; line-height: 1.2;">(Consultant and Panel Valuer)</p>
     </div>
 
     <div style="display: block; margin-bottom: 40px; font-size: 14px; color: #b91c1c;">
       <div style="float: left; width: 50%; font-weight: bold;">
-        <p style="margin: 0;">{{consultantAddress}}</p>
-        <p style="margin: 0;">{{consultantCity}}</p>
-        <p style="margin: 0;">Sri-Lanka</p>
+        <p style="margin: 0; line-height: 1.3;">{{consultantAddress}}</p>
+        <p style="margin: 0; line-height: 1.3;">{{consultantCity}}</p>
+        <p style="margin: 0; line-height: 1.3;">Sri-Lanka</p>
       </div>
       <div style="float: right; width: 50%; text-align: right; font-weight: bold;">
-        <p style="margin: 0;">Email - {{consultantEmail}}</p>
-        <p style="margin: 0;">T.Ph - {{consultantPhone}}</p>
-        <p style="margin: 0;">Date: - {{valuationDate}}</p>
+        <p style="margin: 0; line-height: 1.3;">Email - {{consultantEmail}}</p>
+        <p style="margin: 0; line-height: 1.3;">T.Ph - {{consultantPhone}}</p>
+        <p style="margin: 0; line-height: 1.3;">Date: - {{valuationDate}}</p>
       </div>
       <div style="clear: both;"></div>
     </div>
 
     <div style="margin-bottom: 35px; font-size: 15px;">
-      <p style="font-weight: bold; margin-bottom: 15px;">To Whom It May Concern</p>
-      <p style="margin-bottom: 25px;">Dear Sir/Madam,</p>
-      <h3 style="font-size: 15px; text-decoration: underline; font-weight: bold; text-transform: uppercase; line-height: 1.6; color: #000000;">
+      <p style="font-weight: bold; margin-bottom: 15px; line-height: 1.3;">To Whom It May Concern</p>
+      <p style="margin-bottom: 25px; line-height: 1.3;">Dear Sir/Madam,</p>
+      <h3 style="font-size: 15px; text-decoration: underline; font-weight: bold; text-transform: uppercase; line-height: 1.4; color: #000000;">
         VALUATION REPORT OF PROPERTY IS CLEARLY DEFINED AS A LOT NO : {{lotNo}} IN THE SURVEY PLAN NO – {{planNo}} SURVEYED ON {{planDate}} DRAWN BY {{surveyorName}}, REGD.LICENSED SURVEYOR & LEVELLER.
       </h3>
     </div>
 
-    <table style="width: 100%; font-size: 15px; margin-bottom: 35px; border-collapse: collapse;">
+    <table style="width: 100%; font-size: 15px; margin-bottom: 35px; border-collapse: collapse; line-height: 1.3;">
       <tr>
         <td style="width: 180px; font-weight: bold; padding: 10px 0; vertical-align: top;">Request By</td>
         <td style="padding: 10px 0; vertical-align: top;">: <span style="font-weight: bold; padding: 0 4px; color: #000;">{{requestBy}}</span> <br/> (NIC No – {{requestByNIC}})</td>
@@ -82,31 +82,31 @@ export const defaultTemplates: Template[] = [
       </tr>
     </table>
 
-    <p style="font-size: 15px; margin-bottom: 25px; text-align: justify;">
+    <p style="font-size: 15px; margin-bottom: 25px; text-align: justify; line-height: 1.3;">
       Following your instructions, I have surveyed the aforesaid property on the <span style="font-weight: bold; color: #000;">{{inspectionDate}}</span> and furnish my valuation as at that date, as follows:
     </p>
 
     <div style="font-size: 15px; margin-bottom: 35px;">
-      <p style="margin: 20px 0; text-align: justify;"><span style="font-weight: bold; text-decoration: underline;">The Market Value</span> of the subject property as is more particularly described & identified on the attached plan was placed at <span style="font-weight: bold; color: #000;">Rs. {{marketValue}}/- ({{marketValueText}})</span></p>
+      <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Market Value</span> of the subject property as is more particularly described & identified on the attached plan was placed at <span style="font-weight: bold; color: #000;">Rs. {{marketValue}}/- ({{marketValueText}})</span></p>
       
-      <p style="margin: 20px 0; text-align: justify;"><span style="font-weight: bold; text-decoration: underline;">The Forced Sale Value</span> for mortgage purposes was placed at <span style="font-weight: bold; color: #000;">Rs. {{forcedSaleValue}}/- ({{forcedSaleValueText}})</span></p>
+      <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Forced Sale Value</span> for mortgage purposes was placed at <span style="font-weight: bold; color: #000;">Rs. {{forcedSaleValue}}/- ({{forcedSaleValueText}})</span></p>
       
-      <p style="margin: 20px 0; text-align: justify;"><span style="font-weight: bold; text-decoration: underline;">The Insurance Value</span> Based on Replacement cost at <span style="font-weight: bold; color: #000;">Rs. {{insuranceValue}}/- ({{insuranceValueText}})</span></p>
+      <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Insurance Value</span> Based on Replacement cost at <span style="font-weight: bold; color: #000;">Rs. {{insuranceValue}}/- ({{insuranceValueText}})</span></p>
     </div>
 
-    <p style="font-size: 13px; font-style: italic; margin-bottom: 40px; color: #444; line-height: 1.4; text-align: justify;">
+    <p style="font-size: 13px; font-style: italic; margin-bottom: 40px; color: #444; line-height: 1.3; text-align: justify;">
       <span style="font-weight: bold;">Note:</span> This valuation report has been prepared solely for the purpose stated herein and shall not be used, reproduced or submitted for any other purpose, including any litigation, without the prior written consent of the undersigned valuer.
     </p>
 
-    <p style="font-size: 14px; margin-bottom: 25px;">
+    <p style="font-size: 14px; margin-bottom: 25px; line-height: 1.3;">
       Please refer to pages <span style="font-weight: bold;">2 to 5</span> for the report and valuation.
     </p>
 
     <div style="text-align: left; margin-top: 60px; font-size: 14px;">
-      <p style="margin: 0; font-weight: bold; font-style: italic;">…………………………………</p>
-      <p style="margin: 0; font-weight: bold; font-style: italic;">{{valuerSignatureName}}</p>
-      <p style="margin: 0; font-weight: bold; font-style: italic;">{{valuerQualifications}}</p>
-      <p style="margin: 0; font-weight: bold; font-style: italic;">Incorporated, Registered Valuer</p>
+      <p style="margin: 0; font-weight: bold; font-style: italic; line-height: 1.3;">…………………………………</p>
+      <p style="margin: 0; font-weight: bold; font-style: italic; line-height: 1.3;">{{valuerSignatureName}}</p>
+      <p style="margin: 0; font-weight: bold; font-style: italic; line-height: 1.3;">{{valuerQualifications}}</p>
+      <p style="margin: 0; font-weight: bold; font-style: italic; line-height: 1.3;">Incorporated, Registered Valuer</p>
     </div>
     
     <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 14px; font-weight: bold;">1</div>
@@ -142,7 +142,7 @@ export const defaultTemplates: Template[] = [
   <div style="margin-bottom: 20px; font-size: 15px; overflow: hidden;">
 
     <!-- IMAGE -->
-    <div style="float: left; width: 270px; height: 200px; border: 1px solid #000; background: #fff; margin-right: 18px;">
+    <div style="float: left; width: 270px; height: 200px; background: #fff; margin-right: 18px;">
       <table style="width: 100%; height: 100%; border-collapse: collapse;">
         <tr>
           <td style="text-align: center; vertical-align: middle; padding: 2px;">
@@ -151,7 +151,6 @@ export const defaultTemplates: Template[] = [
         </tr>
       </table>
     </div>
-
     <!-- TEXT -->
     <div style="overflow: hidden;">
       <p style="margin-bottom: 6px; line-height: 1.35; text-align: justify;">
@@ -249,8 +248,9 @@ export const defaultTemplates: Template[] = [
   text-align: center;
   height: 300px;
   box-sizing: border-box;
-  position: relative; /* for overlay label */
+  position: relative;
   overflow: hidden;
+  background-color: #f9fafb;
 ">
 
   <!-- IMAGE PLACEHOLDER -->
@@ -260,12 +260,10 @@ export const defaultTemplates: Template[] = [
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f9fafb; /* placeholder background */
     font-size: 16px;
     color: #999;
-    text-align: center;
   ">
-    {{locationSketch}} <!-- your image placeholder/content here -->
+    {{locationSketch}}
   </div>
 
   <!-- LABEL OVER IMAGE -->
@@ -283,7 +281,6 @@ export const defaultTemplates: Template[] = [
   </div>
 
 </div>
-
 
 
 
@@ -404,9 +401,9 @@ export const defaultTemplates: Template[] = [
 </div>
 
 
-    <div style="float: right; width: 330px; height: 280px; border: 2px solid #b91c1c; padding: 10px; box-sizing: border-box;">
+<div style="float: right; width: 330px; height: 280px; border: 2px solid #b91c1c; padding: 10px; box-sizing: border-box;">
       <p style="font-weight: bold; font-size: 14px; margin: 0 0 5px 0; text-align: center;">FLOOR PLAN</p>
-      <div style="height: 240px; background: #fff; overflow: hidden; line-height: 1.1; display: flex; align-items: center; justify-content: center;">
+      <div style="height: 240px; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center;">
         {{floorPlan}}
       </div>
     </div>
@@ -425,7 +422,7 @@ export const defaultTemplates: Template[] = [
     </div>
 
     <!-- GALLERY USING TABLE FOR PRECISE PDF LAYOUT -->
-    <table style="width: 100%; border-collapse: separate; border-spacing: 15px; margin-bottom: 30px;">
+<table style="width: 100%; border-collapse: separate; border-spacing: 15px; margin-bottom: 30px;">
       <tr>
         <td style="width: 50%; height: 220px; border: 1px solid #000; background: #ffffff; text-align: center; vertical-align: middle; padding: 0;">{{photo1}}</td>
         <td style="width: 50%; height: 220px; border: 1px solid #000; background: #ffffff; text-align: center; vertical-align: middle; padding: 0;">{{photo2}}</td>
