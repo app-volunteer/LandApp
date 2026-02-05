@@ -14,6 +14,7 @@ import {
   X, 
   AlertCircle, 
   ChevronRight,
+  ChevronLeft,
   LayoutGrid,
   Layers,
   Search,
@@ -26,7 +27,8 @@ import {
   CloudLightning,
   PenLine,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  Edit3
 } from "lucide-react";
 import { auth } from "../firebase";
 import { fetchTemplates, saveProjectToFirestore, seedTemplatesToCloud, checkProjectNameExists } from "../utils/templates";
@@ -193,7 +195,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [showImageNotice, setShowImageNotice] = useState(false);
   const [showPDFConfirmation, setShowPDFConfirmation] = useState(false);
-
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const isNameValid = projectName.trim() !== "";
 
@@ -229,6 +231,61 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   useEffect(() => {
     loadTemplates();
   }, [initialProject]);
+
+  // Handle placeholder clicks - different behavior for mobile vs desktop
+  const handlePlaceholderClick = (fieldName: string) => {
+    const isMobile = window.innerWidth < 1024;
+    
+    if (isMobile) {
+      // On mobile: just open sidebar so keyboard appears
+      if (!sidebarOpen) {
+        setSidebarOpen(true);
+      }
+      
+      // Scroll to the field and focus it - use mobile field ID with longer delays
+      setTimeout(() => {
+        const fieldElement = document.getElementById(`field-mobile-${fieldName}`);
+        if (fieldElement) {
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          setTimeout(() => {
+            const input = fieldElement.querySelector('input, textarea') as HTMLInputElement;
+            if (input) {
+              input.focus();
+              // Trigger click to ensure mobile keyboard opens
+              input.click();
+            }
+          }, 500);
+        }
+      }, 400);
+    } else {
+      // On desktop: open sidebar and scroll to field
+      if (!sidebarOpen) {
+        setSidebarOpen(true);
+      }
+      
+      const fieldElement = document.getElementById(`field-${fieldName}`);
+      if (fieldElement) {
+        setTimeout(() => {
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          setTimeout(() => {
+            const input = fieldElement.querySelector('input, textarea') as HTMLInputElement;
+            if (input) {
+              input.focus();
+            }
+          }, 400);
+        }, 100);
+      }
+    }
+  };
+
+  useEffect(() => {
+    (window as any).scrollToField = handlePlaceholderClick;
+    return () => {
+      delete (window as any).scrollToField;
+    };
+  }, [sidebarOpen, formData]);
 
   const handleCloudSeed = async () => {
     setSeeding(true);
@@ -302,9 +359,34 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
     if (!selectedTemplate) return "";
     let html = selectedTemplate.html;
     Object.entries(formData).forEach(([key, value]) => {
-      const displayValue = value || `<span style="color: #cbd5e1; background: #f8fafc; padding: 2px 4px; border-radius: 4px; font-size: 0.8em;">[${key.toUpperCase()}]</span>`;
-      html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), displayValue);
+      if (value) {
+        // Filled values - wrap in a clickable span for editing (trim to remove extra spaces)
+        const trimmedValue = value;
+        const displayValue = `<span onclick="window.scrollToField('${key}')" style="cursor: pointer; display: inline-block; position: relative; transition: all 0.2s;" onmouseover="this.style.textDecoration='underline'; this.style.color='#4f46e5'" onmouseout="this.style.textDecoration='none'; this.style.color='inherit'">${trimmedValue}</span>`;
+        html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), displayValue);
+      } else {
+        // Empty placeholders - use minimal space placeholder
+        const displayValue = `<span onclick="window.scrollToField('${key}')" style="color: #cbd5e1; background: #f8fafc; padding: 2px 4px; border-radius: 4px; font-size: 0.8em; cursor: pointer; transition: all 0.2s; display: inline-block; min-width: 20px;" onmouseover="this.style.background='#e0e7ff'; this.style.color='#4f46e5'" onmouseout="this.style.background='#f8fafc'; this.style.color='#cbd5e1'">[${key.toUpperCase()}]</span>`;
+        html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), displayValue);
+      }
     });
+    
+    // Targeted whitespace fixes - only fix obvious spacing issues
+    // Fix spacing around currency and punctuation
+    html = html.replace(/Rs\.\s{2,}/g, 'Rs. ');
+    html = html.replace(/\s{2,}\//g, '/');
+    html = html.replace(/\/\s{2,}/g, '/');
+    html = html.replace(/\/\s*-\s*\(/g, '/-(');
+    html = html.replace(/\)\s{2,}/g, ') ');
+    html = html.replace(/\s{2,}\)/g, ')');
+    html = html.replace(/\(\s{2,}/g, '(');
+    
+    // Fix common multi-word phrases with excessive spacing
+    html = html.replace(/placed\s{2,}at/g, 'placed at');
+    html = html.replace(/cost\s{2,}at/g, 'cost at');
+    html = html.replace(/at\s{2,}Rs/g, 'at Rs');
+    html = html.replace(/Based\s{2,}on/g, 'Based on');
+    
     return html;
   };
 
@@ -385,112 +467,108 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
     }
   };
 
-const handleDownloadWord = async () => {
-  if (!isNameValid) {
-    alert("Please name the project before exporting.");
-    return;
-  }
-  if (!selectedTemplate) return;
+  const handleDownloadWord = async () => {
+    if (!isNameValid) {
+      alert("Please name the project before exporting.");
+      return;
+    }
+    if (!selectedTemplate) return;
 
-  // Show confirmation modal
-  setShowPDFConfirmation(true);
-};
+    setShowPDFConfirmation(true);
+  };
 
-// Handler for "Yes, I have PDF"
-const handleHasPDF = () => {
-  setShowPDFConfirmation(false);
-  
-  const popup = window.open(
-    "https://www.ilovepdf.com/pdf_to_word",
-    "_blank",
-    "width=900,height=600,resizable=yes,scrollbars=yes"
-  );
+  const handleHasPDF = () => {
+    setShowPDFConfirmation(false);
+    
+    const popup = window.open(
+      "https://www.ilovepdf.com/pdf_to_word",
+      "_blank",
+      "width=900,height=600,resizable=yes,scrollbars=yes"
+    );
 
-  if (!popup) {
-    setErrorMessage("Popup was blocked. Please allow popups for this site.");
-    return;
-  }
-
-  // Focus the popup window
-  const focusInterval = setInterval(() => {
-    try {
-      if (!popup || popup.closed) {
-        clearInterval(focusInterval);
-      } else {
-        popup.focus();
-      }
-    } catch { }
-  }, 400);
-};
-
-// Handler for "No, generate PDF"
-const handleGeneratePDF = async () => {
-  setShowPDFConfirmation(false);
-  setDownloading(true);
-  setErrorMessage(null);
-
-  const popup = window.open(
-    "about:blank",
-    "_blank",
-    "width=900,height=600,resizable=yes,scrollbars=yes"
-  );
-
-  if (!popup) {
-    setDownloading(false);
-    setErrorMessage("Popup was blocked. Please allow popups for this site.");
-    return;
-  }
-
-  const focusInterval = setInterval(() => {
-    try {
-      if (!popup || popup.closed) {
-        clearInterval(focusInterval);
-      } else {
-        popup.focus();
-      }
-    } catch { }
-  }, 400);
-
-  try {
-    popup.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Preparing PDF…</title>
-          <meta charset="UTF-8" />
-          <style>
-            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
-            .loader { text-align: center; }
-            .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-          </style>
-        </head>
-        <body>
-          <div class="loader">
-            <div class="spinner"></div>
-            <p><strong>Generating PDF…</strong></p>
-            <p>This window will continue automatically.</p>
-          </div>
-        </body>
-      </html>
-    `);
-
-    await handleDownloadPDF();
-
-    if (!popup.closed) {
-      popup.location.href = "https://www.ilovepdf.com/pdf_to_word";
-      setTimeout(() => popup.focus(), 200);
+    if (!popup) {
+      setErrorMessage("Popup was blocked. Please allow popups for this site.");
+      return;
     }
 
-  } catch (error) {
-    console.error("PDF generation error:", error);
-    if (!popup.closed) popup.close();
-    setErrorMessage("PDF generation failed. Please try again.");
-  } finally {
-    clearInterval(focusInterval);
-    setDownloading(false);
-  }
-};
+    const focusInterval = setInterval(() => {
+      try {
+        if (!popup || popup.closed) {
+          clearInterval(focusInterval);
+        } else {
+          popup.focus();
+        }
+      } catch { }
+    }, 400);
+  };
+
+  const handleGeneratePDF = async () => {
+    setShowPDFConfirmation(false);
+    setDownloading(true);
+    setErrorMessage(null);
+
+    const popup = window.open(
+      "about:blank",
+      "_blank",
+      "width=900,height=600,resizable=yes,scrollbars=yes"
+    );
+
+    if (!popup) {
+      setDownloading(false);
+      setErrorMessage("Popup was blocked. Please allow popups for this site.");
+      return;
+    }
+
+    const focusInterval = setInterval(() => {
+      try {
+        if (!popup || popup.closed) {
+          clearInterval(focusInterval);
+        } else {
+          popup.focus();
+        }
+      } catch { }
+    }, 400);
+
+    try {
+      popup.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Preparing PDF…</title>
+            <meta charset="UTF-8" />
+            <style>
+              body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
+              .loader { text-align: center; }
+              .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="loader">
+              <div class="spinner"></div>
+              <p><strong>Generating PDF…</strong></p>
+              <p>This window will continue automatically.</p>
+            </div>
+          </body>
+        </html>
+      `);
+
+      await handleDownloadPDF();
+
+      if (!popup.closed) {
+        popup.location.href = "https://www.ilovepdf.com/pdf_to_word";
+        setTimeout(() => popup.focus(), 200);
+      }
+
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      if (!popup.closed) popup.close();
+      setErrorMessage("PDF generation failed. Please try again.");
+    } finally {
+      clearInterval(focusInterval);
+      setDownloading(false);
+    }
+  };
 
   const filteredTemplates = templates.filter(t => 
     t.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -585,7 +663,6 @@ const handleGeneratePDF = async () => {
 
   return (
     <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left text-slate-900">
-      {/* Awareness Warning Card */}
       {showImageNotice && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-amber-50 border-2 border-amber-200 rounded-[2rem] shadow-2xl p-6 z-[100] animate-fade-in flex flex-col gap-4">
           <div className="flex items-start gap-4 text-amber-800">
@@ -629,36 +706,38 @@ const handleGeneratePDF = async () => {
         </div>
       )}
 
-      <header className="bg-white border-b px-8 py-4 flex justify-between items-center z-30 shadow-sm shrink-0">
-        <div className="flex items-center gap-6 flex-1">
+      <header className="bg-white border-b px-4 lg:px-8 py-4 flex justify-between items-center z-30 shadow-sm shrink-0">
+        <div className="flex items-center gap-3 lg:gap-6 flex-1">
           <button onClick={onBack} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all">
             <ArrowLeft size={22}/>
           </button>
-          <div className="flex items-center gap-4 text-left border-r pr-6 border-slate-100">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-              <PenLine size={20} />
+          <div className="flex items-center gap-2 lg:gap-4 text-left lg:border-r lg:pr-6 border-slate-100">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <PenLine size={16} className="lg:hidden" />
+              <PenLine size={20} className="hidden lg:block" />
             </div>
-            <div className="text-left">
+            <div className="text-left flex-1">
               <div className="flex items-center gap-2">
                 <input 
                   type="text" 
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  className="bg-transparent text-lg font-black tracking-tight outline-none border-b-2 border-slate-200 focus:border-blue-600 transition-all min-w-[200px] text-slate-900"
-                  placeholder="Enter project name..."
+                  className="bg-transparent text-sm lg:text-lg font-black tracking-tight outline-none border-b-2 border-slate-200 focus:border-blue-600 transition-all w-32 lg:min-w-[200px] text-slate-900"
+                  placeholder="Project name..."
                 />
               </div>
-              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 hidden lg:block">
                 Name Project
               </p>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 lg:gap-3">
+          {/* Desktop only buttons */}
           <button 
             onClick={fillSampleData}
-            className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100"
+            className="hidden lg:flex items-center gap-2 bg-indigo-50 text-indigo-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100"
           >
             <Wand2 size={16} />
             Fill Samples
@@ -667,39 +746,157 @@ const handleGeneratePDF = async () => {
           <button 
             onClick={handleSave} 
             disabled={saving || !isNameValid}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md ${
+            className={`flex items-center gap-2 px-3 lg:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md ${
               showSuccess ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50'
             }`}
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : showSuccess ? <Check size={16} /> : <Save size={16} />}
-            {saving ? "Saving..." : showSuccess ? "Synced" : "Save Work"}
+            <span className="hidden lg:inline">{saving ? "Saving..." : showSuccess ? "Synced" : "Save Work"}</span>
+          </button>
+
+          {/* Mobile sidebar toggle */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-2.5 hover:bg-slate-100 rounded-xl text-slate-500 transition-all"
+          >
+            {sidebarOpen ? <X size={22} /> : <ChevronRight size={22} />}
           </button>
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        <aside className="w-full lg:w-[450px] bg-white border-r flex flex-col z-20 shadow-xl overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar text-left text-slate-900">
-            {errorMessage && (
-              <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex gap-3 items-start animate-shake text-left">
-                <AlertCircle size={20} className="text-red-500 shrink-0" />
-                <p className="text-xs font-bold text-red-600 leading-tight flex-1">{errorMessage}</p>
-                <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-600">
-                  <X size={16} />
-                </button>
-              </div>
-            )}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Mobile sidebar - fullscreen overlay */}
+        <aside className={`lg:hidden fixed inset-0 z-40 bg-white transition-transform duration-300 ${
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}>
+          <div className="h-full flex flex-col">
+            {/* Mobile sidebar header */}
+            <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
+              <h2 className="text-lg font-black text-slate-900">Edit Fields</h2>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 transition-all"
+              >
+                <X size={24} />
+              </button>
+            </div>
 
-            {!isNameValid && (
-              <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-center text-left">
-                <AlertCircle size={20} className="text-blue-500 shrink-0" />
-                <p className="text-xs font-bold text-blue-700">Please provide a project name to enable exports.</p>
-              </div>
-            )}
+            {/* Mobile sidebar content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-24">
+              {errorMessage && (
+                <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex gap-3 items-start text-left">
+                  <AlertCircle size={20} className="text-red-500 shrink-0" />
+                  <p className="text-xs font-bold text-red-600 leading-tight flex-1">{errorMessage}</p>
+                  <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-600">
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
 
-       
-            
-            <div className="space-y-8 text-left text-slate-900">
+              {!isNameValid && (
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-center text-left">
+                  <AlertCircle size={20} className="text-blue-500 shrink-0" />
+                  <p className="text-xs font-bold text-blue-700">Please provide a project name to enable exports.</p>
+                </div>
+              )}
+              
+              <div className="space-y-8 text-left text-slate-900">
+                {Object.keys(formData).map(key => {
+                  const config = fieldConfig[key];
+                  if (!config) return null;
+
+                  const isEmailInvalid = config.type === 'email' && formData[key] && !validateEmail(formData[key]);
+
+                  return (
+                    <div key={key} id={`field-mobile-${key}`} className="space-y-3 text-left scroll-mt-4">
+                      <div className="flex justify-between items-center text-left">
+                        <label className={`block text-xs font-black uppercase tracking-widest ${isEmailInvalid ? 'text-red-500' : 'text-slate-700'}`}>
+                          {config.label}
+                        </label>
+                        <div className="opacity-50">
+                          {config.type === 'currency' && <DollarSign size={14} className="text-emerald-500" />}
+                          {config.type === 'date' && <Calendar size={14} className="text-blue-500" />}
+                          {config.type === 'number' && <Hash size={14} className="text-slate-500" />}
+                          {config.type === 'email' && <Mail size={14} className={isEmailInvalid ? 'text-red-500' : 'text-slate-500'} />}
+                        </div>
+                      </div>
+
+                      {config.type === "image" ? (
+                        <div className="flex flex-col gap-3 text-left">
+                          {formData[key] ? (
+                            <div className="relative group aspect-video rounded-xl overflow-hidden bg-slate-50 border-2 border-slate-100 shadow-sm flex items-center justify-center">
+                              <div className="w-full h-full flex items-center justify-center p-2" dangerouslySetInnerHTML={{ __html: formData[key] }} />
+                              <button 
+                                onClick={() => handleFieldChange(key, "")}
+                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg transition-all z-10"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="aspect-video rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all text-slate-400 hover:text-blue-600">
+                              {uploadingImage === key ? <Loader2 size={28} className="animate-spin" /> : <ImageIcon size={28} />}
+                              <span className="text-[10px] font-black uppercase tracking-widest">Upload Photo</span>
+                              <input type="file" accept="image/*" onChange={(e) => handleImageUpload(key, e)} className="hidden" disabled={uploadingImage !== null} />
+                            </label>
+                          )}
+                        </div>
+                      ) : (
+                        <input 
+                          type={config.type === 'date' ? 'date' : 'text'}
+                          value={formData[key]} 
+                          onChange={(e) => handleFieldChange(key, e.target.value)} 
+                          className={`w-full border-2 rounded-2xl px-5 py-4 outline-none transition-all text-base font-semibold shadow-sm text-slate-900 ${
+                            isEmailInvalid 
+                              ? 'border-red-200 bg-red-50 text-red-900' 
+                              : 'border-slate-100 bg-slate-50 text-slate-900 focus:bg-white focus:border-blue-500'
+                          }`} 
+                          placeholder={config.placeholder}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Desktop sidebar */}
+        <aside className={`bg-white border-r flex-col z-20 shadow-xl transition-all duration-300 hidden lg:flex relative ${
+          sidebarOpen ? 'w-[450px] opacity-100' : 'w-0 opacity-0 border-r-0'
+        }`}>
+          {/* Toggle button for desktop - positioned at the right edge of sidebar */}
+          {sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="fixed left-[438px] top-24 z-50 bg-blue-600 text-white p-3 rounded-r-xl shadow-lg hover:bg-blue-700 transition-all"
+              title="Close sidebar"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+          
+          {sidebarOpen && (
+            <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar text-left text-slate-900">
+              {errorMessage && (
+                <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex gap-3 items-start animate-shake text-left">
+                  <AlertCircle size={20} className="text-red-500 shrink-0" />
+                  <p className="text-xs font-bold text-red-600 leading-tight flex-1">{errorMessage}</p>
+                  <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-600">
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              {!isNameValid && (
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-center text-left">
+                  <AlertCircle size={20} className="text-blue-500 shrink-0" />
+                  <p className="text-xs font-bold text-blue-700">Please provide a project name to enable exports.</p>
+                </div>
+              )}
+              
+              <div className="space-y-8 text-left text-slate-900">
               {Object.keys(formData).map(key => {
                 const config = fieldConfig[key];
                 if (!config) return null;
@@ -707,7 +904,7 @@ const handleGeneratePDF = async () => {
                 const isEmailInvalid = config.type === 'email' && formData[key] && !validateEmail(formData[key]);
 
                 return (
-                  <div key={key} className="space-y-3 text-left">
+                  <div key={key} id={`field-${key}`} className="space-y-3 text-left scroll-mt-4">
                     <div className="flex justify-between items-center text-left">
                       <label className={`block text-[11px] font-black uppercase tracking-widest ${isEmailInvalid ? 'text-red-500' : 'text-slate-700'}`}>
                         {config.label}
@@ -758,9 +955,11 @@ const handleGeneratePDF = async () => {
               })}
             </div>
           </div>
+          )}
 
-          <div className="p-8 bg-slate-50 border-t space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+          {sidebarOpen && (
+            <div className="p-8 bg-slate-50 border-t space-y-4">
+              <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={handleDownloadPDF} 
                 disabled={downloading || !isNameValid}
@@ -783,10 +982,23 @@ const handleGeneratePDF = async () => {
               </button>
             </div>
           </div>
+          )}
         </aside>
 
-        <main className="flex-1 bg-slate-200 overflow-y-auto p-12 flex justify-center no-scrollbar relative text-left text-slate-900">
-          <div className="shadow-[0_60px_100px_-40px_rgba(0,0,0,0.4)] bg-white origin-top scale-[0.85] lg:scale-100 mb-20 text-left">
+        {/* Show sidebar toggle button when closed on desktop - attached to left edge */}
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="hidden lg:flex fixed left-0 top-24 z-30 bg-blue-600 text-white p-3 rounded-r-xl rounded-l-none shadow-lg hover:bg-blue-700 transition-all items-center justify-center"
+            title="Open sidebar"
+          >
+            <ChevronRight size={18} />
+          </button>
+        )}
+
+        {/* PDF Preview - Full width when sidebar closed */}
+        <main className={`flex-1 bg-slate-200 overflow-y-auto p-4 lg:p-12 flex justify-center items-start no-scrollbar relative text-left text-slate-900 transition-all duration-300`}>
+          <div className="shadow-[0_20px_50px_-20px_rgba(0,0,0,0.3)] lg:shadow-[0_60px_100px_-40px_rgba(0,0,0,0.4)] bg-white origin-top scale-[0.5] sm:scale-[0.7] lg:scale-100 mb-20 text-left">
             <div 
               id="template-preview" 
               className="bg-white text-left"
@@ -795,7 +1007,34 @@ const handleGeneratePDF = async () => {
             />
           </div>
         </main>
+
+        {/* Mobile bottom action bar */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-30 shadow-2xl">
+          <div className="grid grid-cols-2 gap-3">
+            <button 
+              onClick={handleDownloadPDF} 
+              disabled={downloading || !isNameValid}
+              className={`py-4 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all uppercase shadow-md ${
+                isNameValid ? 'bg-slate-900 text-white hover:opacity-90' : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              {downloading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16}/>}
+              PDF
+            </button>
+            <button 
+              onClick={handleDownloadWord} 
+              disabled={downloadingWord || !isNameValid}
+              className={`py-4 rounded-2xl font-black text-[10px] tracking-widest flex items-center justify-center gap-2 transition-all uppercase shadow-md ${
+                isNameValid ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              {downloadingWord ? <Loader2 size={16} className="animate-spin" /> : <Download size={16}/>}
+              WORD
+            </button>
+          </div>
+        </div>
       </div>
+
       <style>{`
         @keyframes progress-indefinite {
           0% { transform: scaleX(0); transform-origin: left; }
@@ -803,14 +1042,28 @@ const handleGeneratePDF = async () => {
           50% { transform: scaleX(1); transform-origin: right; }
           100% { transform: scaleX(0); transform-origin: right; }
         }
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
       `}</style>
-          {showPDFConfirmation && (
-      <PDFConfirmationModal
-        onConfirm={handleHasPDF}
-        onCancel={handleGeneratePDF}
-        onClose={() => setShowPDFConfirmation(false)}
-      />
-    )}
+
+      {showPDFConfirmation && (
+        <PDFConfirmationModal
+          onConfirm={handleHasPDF}
+          onCancel={handleGeneratePDF}
+          onClose={() => setShowPDFConfirmation(false)}
+        />
+      )}
     </div>
   );
 }

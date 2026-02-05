@@ -89,9 +89,9 @@ export const defaultTemplates: Template[] = [
     <div style="font-size: 15px; margin-bottom: 35px;">
       <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Market Value</span> of the subject property as is more particularly described & identified on the attached plan was placed at <span style="font-weight: bold; color: #000;">Rs. {{marketValue}}/- ({{marketValueText}})</span></p>
       
-      <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Forced Sale Value</span> for mortgage purposes was placed at <span style="font-weight: bold; color: #000;">Rs. {{forcedSaleValue}}/- ({{forcedSaleValueText}})</span></p>
+      <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Forced Sale Value</span> for mortgage purposes was placed at <span style="font-weight: bold; color: #000;">Rs. {{forcedSaleValue}}/-({{forcedSaleValueText}})</span></p>
       
-      <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Insurance Value</span> Based on Replacement cost at <span style="font-weight: bold; color: #000;">Rs. {{insuranceValue}}/- ({{insuranceValueText}})</span></p>
+      <p style="margin: 20px 0; text-align: justify; line-height: 1.3;"><span style="font-weight: bold; text-decoration: underline;">The Insurance Value</span> Based on Replacement cost at <span style="font-weight: bold; color: #000;">Rs. {{insuranceValue}}/-({{insuranceValueText}})</span></p>
     </div>
 
     <p style="font-size: 13px; font-style: italic; margin-bottom: 40px; color: #444; line-height: 1.3; text-align: justify;">
