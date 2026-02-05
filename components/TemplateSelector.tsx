@@ -771,15 +771,19 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
         }`}>
           <div className="h-full flex flex-col">
             {/* Mobile sidebar header */}
-            <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
+            <div className="flex items-center justify-center p-4 border-b bg-white sticky top-0 z-10 relative">
               <h2 className="text-lg font-black text-slate-900">Edit Fields</h2>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 transition-all"
-              >
-                <X size={24} />
-              </button>
             </div>
+            
+            {/* Centered close button - fixed position, always accessible even when keyboard is open */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="fixed top-1/2 right-4 -translate-y-1/2 z-50 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-700 transition-all active:scale-95"
+              style={{ touchAction: 'manipulation' }}
+              aria-label="Close sidebar"
+            >
+              <ChevronRight size={24} />
+            </button>
 
             {/* Mobile sidebar content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-24">
