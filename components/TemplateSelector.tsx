@@ -664,12 +664,12 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   return (
     <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left text-slate-900">
 {showImageNotice && (
-  <div className="fixed top-4 sm:top-24 left-1/2 -translate-x-1/2 w-[92%] sm:w-[90%] max-w-md sm:max-w-lg bg-amber-50 border-2 border-amber-200 rounded-xl sm:rounded-[2rem] shadow-2xl p-3 sm:p-6 z-[100] animate-fade-in flex flex-col gap-2.5 sm:gap-4">
+  <div className="fixed top-4 sm:top-24 left-1/2 -translate-x-1/2 w-[92%] sm:w-[90%] max-w-md sm:max-w-lg bg-amber-50 border-2 border-amber-200 rounded-xl sm:rounded-[2rem] shadow-2xl p-3 sm:p-6 z-[100] animate-fade-in flex flex-col gap-2.5 sm:gap-4 mx-2">
     <div className="flex items-start gap-2.5 sm:gap-4 text-amber-800">
       <div className="bg-amber-100 p-1.5 sm:p-3 rounded-lg sm:rounded-2xl shrink-0">
         <AlertTriangle size={18} className="sm:w-6 sm:h-6" />
       </div>
-      <div>
+      <div className="flex-1 min-w-0">
         <h4 className="text-[10px] sm:text-sm font-black uppercase tracking-wider sm:tracking-widest mb-0.5 sm:mb-1">Storage Awareness</h4>
         <p className="text-[10px] sm:text-xs font-medium leading-relaxed opacity-90">
           Uploaded images are <span className="font-bold underline">not stored in the cloud</span> database. 
