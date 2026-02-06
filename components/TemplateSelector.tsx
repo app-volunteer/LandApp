@@ -1000,16 +1000,18 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
         )}
 
         {/* PDF Preview - Full width when sidebar closed */}
-        <main className={`flex-1 bg-slate-200 overflow-y-auto p-4 lg:p-12 flex justify-center items-start no-scrollbar relative text-left text-slate-900 transition-all duration-300`}>
-          <div className="shadow-[0_20px_50px_-20px_rgba(0,0,0,0.3)] lg:shadow-[0_60px_100px_-40px_rgba(0,0,0,0.4)] bg-white origin-top scale-[0.5] sm:scale-[0.7] lg:scale-100 mb-20 text-left">
-            <div 
-              id="template-preview" 
-              className="bg-white text-left"
-              style={{ width: "794px", minHeight: "1122px" }}
-              dangerouslySetInnerHTML={{ __html: getFilledHtml() }}
-            />
-          </div>
-        </main>
+ <main className={`flex-1 bg-slate-200 overflow-y-auto p-4 lg:p-12 flex justify-center items-start no-scrollbar relative text-left text-slate-900 transition-all duration-300`}>
+  <div className="w-full flex justify-center pb-32 lg:pb-20">
+    <div className="shadow-[0_20px_50px_-20px_rgba(0,0,0,0.3)] lg:shadow-[0_60px_100px_-40px_rgba(0,0,0,0.4)] bg-white origin-top scale-[0.5] sm:scale-[0.7] lg:scale-100 text-left">
+      <div 
+        id="template-preview" 
+        className="bg-white text-left"
+        style={{ width: "794px", minHeight: "1122px" }}
+        dangerouslySetInnerHTML={{ __html: getFilledHtml() }}
+      />
+    </div>
+  </div>
+</main>
 
         {/* Mobile bottom action bar */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-30 shadow-2xl">
