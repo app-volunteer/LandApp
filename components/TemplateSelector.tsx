@@ -1000,9 +1000,10 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
         )}
 
         {/* PDF Preview - Full width when sidebar closed */}
-<main className={`flex-1 bg-slate-200 overflow-y-auto p-4 lg:p-12 flex justify-center items-start no-scrollbar relative text-left text-slate-900 transition-all duration-300`}>
-  <div className="w-full flex justify-center pb-4 lg:pb-20">
-    <div className="shadow-[0_20px_50px_-20px_rgba(0,0,0,0.3)] lg:shadow-[0_60px_100px_-40px_rgba(0,0,0,0.4)] bg-white origin-top scale-[0.5] sm:scale-[0.7] lg:scale-100 text-left">
+<main className={`flex-1 bg-slate-200 overflow-y-auto flex justify-center items-start no-scrollbar relative text-left text-slate-900 transition-all duration-300`}>
+  <div className="w-full max-w-[397px] sm:max-w-[556px] lg:max-w-[794px] p-4 lg:p-12 pb-24 lg:pb-20">
+    <div className="shadow-[0_20px_50px_-20px_rgba(0,0,0,0.3)] lg:shadow-[0_60px_100px_-40px_rgba(0,0,0,0.4)] bg-white origin-top scale-[0.5] sm:scale-[0.7] lg:scale-100 text-left mx-auto"
+         style={{ width: "794px", transformOrigin: "top center" }}>
       <div 
         id="template-preview" 
         className="bg-white text-left"
