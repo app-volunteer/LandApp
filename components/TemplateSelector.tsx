@@ -664,7 +664,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
   return (
     <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left text-slate-900">
 {showImageNotice && (
-  <div className="fixed top-4 sm:top-24 left-1/2 -translate-x-1/2 w-[92%] sm:w-[90%] max-w-md sm:max-w-lg bg-amber-50 border-2 border-amber-200 rounded-xl sm:rounded-[2rem] shadow-2xl p-3 sm:p-6 z-[100] animate-fade-in flex flex-col gap-2.5 sm:gap-4 mx-4 sm:mx-auto">
+  <div className="fixed top-4 sm:top-24 left-1/2 -translate-x-1/2 w-[92%] sm:w-[90%] max-w-md sm:max-w-lg bg-amber-50 border-2 border-amber-200 rounded-xl sm:rounded-[2rem] shadow-2xl p-3 sm:p-6 z-[100] animate-fade-in flex flex-col gap-2.5 sm:gap-4 mr-4 sm:mr-0">
     <div className="flex items-start gap-2.5 sm:gap-4 text-amber-800">
       <div className="bg-amber-100 p-1.5 sm:p-3 rounded-lg sm:rounded-2xl shrink-0">
         <AlertTriangle size={18} className="sm:w-6 sm:h-6" />
