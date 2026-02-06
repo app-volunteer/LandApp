@@ -663,15 +663,15 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
 
   return (
     <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans text-left text-slate-900">
-    {showImageNotice && (
-  <div className="fixed top-4 sm:top-24 left-1/2 -translate-x-1/2 w-[95%] sm:w-[90%] max-w-lg bg-amber-50 border-2 border-amber-200 rounded-2xl sm:rounded-[2rem] shadow-2xl p-4 sm:p-6 z-[100] animate-fade-in flex flex-col gap-3 sm:gap-4">
-    <div className="flex items-start gap-3 sm:gap-4 text-amber-800">
-      <div className="bg-amber-100 p-2 sm:p-3 rounded-xl sm:rounded-2xl shrink-0">
-        <AlertTriangle size={20} className="sm:w-6 sm:h-6" />
+{showImageNotice && (
+  <div className="fixed top-4 sm:top-24 left-1/2 -translate-x-1/2 w-[92%] sm:w-[90%] max-w-md sm:max-w-lg bg-amber-50 border-2 border-amber-200 rounded-xl sm:rounded-[2rem] shadow-2xl p-3 sm:p-6 z-[100] animate-fade-in flex flex-col gap-2.5 sm:gap-4">
+    <div className="flex items-start gap-2.5 sm:gap-4 text-amber-800">
+      <div className="bg-amber-100 p-1.5 sm:p-3 rounded-lg sm:rounded-2xl shrink-0">
+        <AlertTriangle size={18} className="sm:w-6 sm:h-6" />
       </div>
       <div>
-        <h4 className="text-xs sm:text-sm font-black uppercase tracking-widest mb-1">Storage Awareness</h4>
-        <p className="text-[11px] sm:text-xs font-medium leading-relaxed opacity-90">
+        <h4 className="text-[10px] sm:text-sm font-black uppercase tracking-wider sm:tracking-widest mb-0.5 sm:mb-1">Storage Awareness</h4>
+        <p className="text-[10px] sm:text-xs font-medium leading-relaxed opacity-90">
           Uploaded images are <span className="font-bold underline">not stored in the cloud</span> database. 
           They will be cleared when you refresh the page. Please use PDF or Word export to save your report with photos permanently.
         </p>
@@ -679,7 +679,7 @@ export default function TemplateSelector({ onBack, initialProject }: TemplateSel
     </div>
     <button 
       onClick={dismissNotice}
-      className="w-full bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all touch-manipulation"
+      className="w-full bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all touch-manipulation"
     >
       I Understand
     </button>
